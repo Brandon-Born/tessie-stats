@@ -23,7 +23,7 @@
     "validate": "npm run lint && npm run typecheck && npm run test",
     "db:migrate": "npm run db:migrate --workspace=api",
     "db:seed": "npm run db:seed --workspace=api",
-    "prepare": "husky install"
+    "prepare": "node -e \"if (!process.env.CI) { try { require('child_process').execSync('husky install', { stdio: 'inherit' }); } catch(e) {} }\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
