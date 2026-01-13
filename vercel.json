@@ -6,9 +6,7 @@
   "outputDirectory": "web/dist",
   "installCommand": "npm install",
   "functions": {
-    "api/src/vercel.ts": {
-      "runtime": "@vercel/node@3"
-    }
+    "api/src/vercel.ts": {}
   },
   "rewrites": [
     {
