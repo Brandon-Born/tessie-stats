@@ -1,0 +1,33 @@
+// Tesla-inspired theme tokens (dark-first)
+// Values are stored as space-separated RGB triples so Tailwind can do alpha:
+// e.g. rgb(var(--ts-bg) / 0.8)
+
+:root {
+  /* Core surfaces */
+  --ts-bg: 9 10 12; /* near-black */
+  --ts-surface: 16 18 22; /* elevated panel */
+  --ts-surface-2: 22 25 31; /* higher elevation */
+  --ts-border: 48 54 66; /* subtle border */
+
+  /* Typography */
+  --ts-text: 242 244 248; /* primary text */
+  --ts-muted: 160 170 188; /* secondary text */
+
+  /* Tesla accent */
+  --ts-accent: 232 33 39; /* #E82127 */
+
+  /* Domain accents */
+  --ts-solar: 245 158 11;
+  --ts-battery: 16 185 129;
+  --ts-grid: 59 130 246;
+
+  /* Spacing & radii (for SCSS usage / custom CSS, Tailwind handles most) */
+  --ts-radius-sm: 10px;
+  --ts-radius-md: 14px;
+  --ts-radius-lg: 18px;
+}
+
+.dark {
+  color-scheme: dark;
+}
+

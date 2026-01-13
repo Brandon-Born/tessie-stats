@@ -1,0 +1,37 @@
+@layer base {
+  html {
+    @apply font-sans antialiased;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-bg text-text;
+  }
+
+  /* Better focus ring defaults */
+  :where(a, button, input, textarea, select, [tabindex]):focus-visible {
+    outline: 2px solid rgb(var(--ts-accent) / 0.6);
+    outline-offset: 2px;
+  }
+
+  /* Subtle scrollbar on dark */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgb(var(--ts-bg) / 1);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--ts-border) / 0.7);
+    border-radius: 9999px;
+    border: 2px solid rgb(var(--ts-bg) / 1);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--ts-border) / 1);
+  }
+}
+

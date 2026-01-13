@@ -4,47 +4,27 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: ['class'],
   theme: {
     extend: {
       colors: {
-        // Tesla-inspired color palette
-        tesla: {
-          red: '#E82127',
-          blue: '#3E6AE1',
-          dark: '#171A20',
-        },
-        // Energy colors
-        solar: {
-          50: '#FFFBEB',
-          100: '#FEF3C7',
-          200: '#FDE68A',
-          300: '#FCD34D',
-          400: '#FBBF24',
-          500: '#F59E0B',
-          600: '#D97706',
-        },
-        battery: {
-          50: '#ECFDF5',
-          100: '#D1FAE5',
-          200: '#A7F3D0',
-          300: '#6EE7B7',
-          400: '#34D399',
-          500: '#10B981',
-          600: '#059669',
-        },
-        grid: {
-          50: '#EFF6FF',
-          100: '#DBEAFE',
-          200: '#BFDBFE',
-          300: '#93C5FD',
-          400: '#60A5FA',
-          500: '#3B82F6',
-          600: '#2563EB',
-        },
+        // Theme tokens (defined in src/styles/tokens.scss)
+        bg: 'rgb(var(--ts-bg) / <alpha-value>)',
+        surface: 'rgb(var(--ts-surface) / <alpha-value>)',
+        'surface-2': 'rgb(var(--ts-surface-2) / <alpha-value>)',
+        border: 'rgb(var(--ts-border) / <alpha-value>)',
+        text: 'rgb(var(--ts-text) / <alpha-value>)',
+        muted: 'rgb(var(--ts-muted) / <alpha-value>)',
+        accent: 'rgb(var(--ts-accent) / <alpha-value>)', // Tesla red
+
+        // Domain accents
+        solar: 'rgb(var(--ts-solar) / <alpha-value>)',
+        battery: 'rgb(var(--ts-battery) / <alpha-value>)',
+        grid: 'rgb(var(--ts-grid) / <alpha-value>)',
       },
       fontFamily: {
-        sans: ['Inter var', 'Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        sans: ['ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',

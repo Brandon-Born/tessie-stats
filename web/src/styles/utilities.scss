@@ -1,0 +1,15 @@
+@layer utilities {
+  .text-gradient-accent {
+    background-image: linear-gradient(90deg, rgb(var(--ts-accent) / 1), rgb(var(--ts-text) / 0.9));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .bg-tesla-gradient {
+    background-image: radial-gradient(1200px 600px at 20% 0%, rgb(var(--ts-accent) / 0.10), transparent 60%),
+      radial-gradient(900px 500px at 80% 20%, rgb(var(--ts-grid) / 0.10), transparent 55%),
+      linear-gradient(180deg, rgb(var(--ts-bg) / 1), rgb(var(--ts-bg) / 1));
+  }
+}
+

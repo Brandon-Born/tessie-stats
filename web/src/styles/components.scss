@@ -1,0 +1,14 @@
+@layer components {
+  .ts-card {
+    @apply rounded-2xl border border-border/60 bg-surface/70 backdrop-blur-md;
+  }
+
+  .ts-card-inner {
+    @apply rounded-2xl bg-surface p-6 shadow-[0_20px_50px_-30px_rgba(0,0,0,0.8)];
+  }
+
+  .ts-glass {
+    @apply border border-white/10 bg-white/5 backdrop-blur-md;
+  }
+}
+
