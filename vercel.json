@@ -1,9 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
   "builds": [
     {
-      "src": "api/dist/main.js",
+      "src": "api/src/vercel.ts",
       "use": "@vercel/node"
     },
     {
@@ -17,7 +19,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "api/dist/main.js"
+      "dest": "api/src/vercel.ts"
     },
     {
       "src": "/(.*)",
@@ -29,8 +31,5 @@
       "path": "/api/sync/cron",
       "schedule": "*/5 * * * *"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
+  ]
 }
