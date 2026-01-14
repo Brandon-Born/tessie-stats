@@ -21,9 +21,11 @@ import { TeslaModule } from './modules/tesla/tesla.module';
 import { VehicleModule } from './modules/vehicle/vehicle.module';
 import { EnergyModule } from './modules/energy/energy.module';
 
+// Sync module (for Vercel Cron)
+import { SyncModule } from './modules/sync/sync.module';
+
 // Additional feature modules will be imported here as they are created:
 // import { ChargingModule } from './modules/charging/charging.module';
-// import { SyncModule } from './modules/sync/sync.module';
 
 @Module({
   imports: [
@@ -47,10 +49,10 @@ import { EnergyModule } from './modules/energy/energy.module';
     TeslaModule,
     VehicleModule,
     EnergyModule,
+    SyncModule,
 
     // Additional feature modules - add as implemented:
     // ChargingModule,
-    // SyncModule,
   ],
   controllers: [],
   providers: [],
