@@ -117,10 +117,12 @@ export interface EnergyHistory {
  */
 
 export interface EnergySiteResponse {
+  energy_site_id: number;
   id: string;
   site_name: string;
-  backup_reserve_percent: number;
-  battery_count: number;
+  resource_type: 'battery' | 'solar';
+  backup_reserve_percent?: number;
+  battery_count?: number;
 }
 
 export interface EnergySiteData {

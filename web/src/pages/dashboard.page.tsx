@@ -29,10 +29,10 @@ export function DashboardPage(): React.JSX.Element {
   });
 
   // Fetch energy data for first site
-  const firstSiteId = energySitesQuery.data?.[0]?.id;
+  const firstSiteId = energySitesQuery.data?.[0]?.energy_site_id;
   const energyDataQuery = useQuery({
     queryKey: ['energy-data', firstSiteId],
-    queryFn: () => energyService.getEnergySiteData(firstSiteId!),
+    queryFn: () => energyService.getEnergySiteData(String(firstSiteId!)),
     enabled: !!firstSiteId,
     refetchInterval: 60000,
   });
