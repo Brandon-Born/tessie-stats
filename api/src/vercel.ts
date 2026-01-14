@@ -21,8 +21,10 @@ async function getApp(): Promise<any> {
       logger: false,
     });
 
-    // Global prefix for all routes
-    app.setGlobalPrefix('api');
+    // Global prefix for all routes (except .well-known)
+    app.setGlobalPrefix('api', {
+      exclude: ['.well-known/appspecific/com.tesla.3p.public-key.pem'],
+    });
 
     // Global validation pipe
     app.useGlobalPipes(
