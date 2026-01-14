@@ -24,6 +24,68 @@ If any of these fail, fix the issues before marking the task complete.
 
 ---
 
+## 🔴 PRIME DIRECTIVE: Tesla API Cost Management
+
+**Tesla API calls are NOT FREE.** Every request costs money. You MUST be judicious with API usage:
+
+### Before Making ANY Tesla API Call:
+
+1. **Check Asset Wake State First**
+   - Use `/api/1/vehicles` to check vehicle state (`online`, `asleep`, `offline`)
+   - If `asleep` or `offline`, use cached data OR explicitly wake only if necessary
+   - NEVER fire multiple API calls to sleeping vehicles without checking first
+
+2. **Use PostgreSQL Cache (2-Minute TTL)**
+   - Check database for recent data (< 2 minutes old) BEFORE hitting Tesla API
+   - Store ALL Tesla API responses in database with timestamp
+   - Return cached data if fresh enough for the use case
+
+3. **Batch Requests When Possible**
+   - Use `endpoints` parameter on `/vehicle_data` to get multiple data types in one call
+   - Group related operations to minimize total API calls
+
+4. **Implement Request Throttling**
+   - Respect rate limits (10/min, 1/sec)
+   - Queue requests rather than firing them simultaneously
+   - Use exponential backoff on errors
+
+### Code Pattern for API Calls:
+
+```typescript
+async getVehicleData(vehicleId: string): Promise<VehicleData> {
+  // 1. Check cache first (2-minute TTL)
+  const cached = await this.getCachedVehicleData(vehicleId);
+  if (cached && this.isFresh(cached, 120)) { // 120 seconds = 2 minutes
+    return cached;
+  }
+  
+  // 2. Check if vehicle is awake
+  const vehicle = await this.getVehicle(vehicleId); // Lightweight endpoint
+  if (vehicle.state !== 'online') {
+    // Return cached data (even if stale) or decide to wake
+    if (cached) return cached;
+    // Only wake if explicitly needed
+    await this.wakeVehicle(vehicleId);
+  }
+  
+  // 3. Make API call and cache result
+  const data = await this.teslaApi.getVehicleData(vehicleId);
+  await this.cacheVehicleData(vehicleId, data);
+  return data;
+}
+```
+
+### When Reviewing Code:
+- ✅ Verify cache check happens BEFORE Tesla API call
+- ✅ Verify wake state check for vehicle endpoints
+- ✅ Verify data is cached after API call
+- ❌ REJECT any code that blindly calls Tesla API without caching
+- ❌ REJECT any code that makes multiple calls without checking wake state
+
+**Remember:** Every unnecessary API call costs real money. Cache aggressively, check state first, batch wisely.
+
+---
+
 ## Project Context
 
 This is a Tesla & Powerwall dashboard application with:

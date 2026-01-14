@@ -9,9 +9,10 @@ import { VehicleController } from './vehicle.controller';
 import { VehicleService } from './vehicle.service';
 import { TeslaModule } from '../tesla/tesla.module';
 import { AuthModule } from '../auth/auth.module';
+import { DatabaseModule } from '../../database/database.module';
 
 @Module({
-  imports: [TeslaModule, AuthModule],
+  imports: [TeslaModule, AuthModule, DatabaseModule],
   controllers: [VehicleController],
   providers: [VehicleService],
   exports: [VehicleService],

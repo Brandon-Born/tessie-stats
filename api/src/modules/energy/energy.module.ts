@@ -9,9 +9,10 @@ import { EnergyController } from './energy.controller';
 import { EnergyService } from './energy.service';
 import { TeslaModule } from '../tesla/tesla.module';
 import { AuthModule } from '../auth/auth.module';
+import { DatabaseModule } from '../../database/database.module';
 
 @Module({
-  imports: [TeslaModule, AuthModule],
+  imports: [TeslaModule, AuthModule, DatabaseModule],
   controllers: [EnergyController],
   providers: [EnergyService],
   exports: [EnergyService],

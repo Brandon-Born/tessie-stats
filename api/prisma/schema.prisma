@@ -248,3 +248,40 @@ model EnergyDaily {
   @@index([siteId, date(sort: Desc)], name: "idx_energy_daily_site_date")
   @@map("energy_daily")
 }
+
+// ============================================================================
+// API CACHE TABLES - Cost Management (2-minute TTL)
+// @see .cursorrules for Prime Directive
+// ============================================================================
+
+// Vehicle Data Cache - prevents excessive Tesla API calls
+model VehicleDataCache {
+  vehicleId   String   @id @map("vehicle_id") @db.VarChar(50)
+  data        Json     @db.JsonB
+  cachedAt    DateTime @map("cached_at") @db.Timestamptz
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz
+
+  @@index([expiresAt], name: "idx_vehicle_cache_expiry")
+  @@map("vehicle_data_cache")
+}
+
+// Energy Site Data Cache - prevents excessive Tesla API calls
+model EnergyDataCache {
+  siteId      String   @id @map("site_id") @db.VarChar(50)
+  data        Json     @db.JsonB
+  cachedAt    DateTime @map("cached_at") @db.Timestamptz
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz
+
+  @@index([expiresAt], name: "idx_energy_cache_expiry")
+  @@map("energy_data_cache")
+}
+
+// Vehicle List Cache - lightweight cache for wake state checking
+model VehicleListCache {
+  id          String   @id @default("singleton") @db.VarChar(20)
+  data        Json     @db.JsonB
+  cachedAt    DateTime @map("cached_at") @db.Timestamptz
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz
+
+  @@map("vehicle_list_cache")
+}

@@ -576,16 +576,56 @@ LOG_LEVEL=info
 ## Performance Considerations
 
 ### Caching Strategy
-- **API Responses:** 60-second cache for live data
+
+> 🔴 **CRITICAL:** Tesla API calls are NOT free. Aggressive caching is mandatory.
+
+#### Database-Level Cache (Primary Strategy)
+- **Tesla API Responses:** 2-minute TTL (120 seconds) - stored in PostgreSQL
+- **Cache Tables:** `vehicle_data_cache`, `energy_data_cache` with timestamps
+- **Check Order:** Always check database cache BEFORE making Tesla API calls
+- **Wake State:** Always verify vehicle is `online` before making data requests
+- **Batch Requests:** Use `endpoints` parameter to minimize API calls
+
+#### Cache Implementation Requirements
+```typescript
+// Every Tesla API wrapper must follow this pattern:
+async getTeslaData(resourceId: string): Promise<Data> {
+  // 1. Check database cache (2-minute TTL)
+  const cached = await this.checkCache(resourceId);
+  if (cached && isWithinTTL(cached, 120)) {
+    return cached.data;
+  }
+  
+  // 2. Check wake state for vehicles
+  if (isVehicle(resourceId)) {
+    const vehicle = await this.getVehicleState(resourceId);
+    if (vehicle.state !== 'online') {
+      // Return stale cache or wake only if necessary
+      return cached?.data ?? this.handleOfflineVehicle(resourceId);
+    }
+  }
+  
+  // 3. Make API call and cache result
+  const data = await this.teslaApi.call(resourceId);
+  await this.saveToCache(resourceId, data, 120);
+  return data;
+}
+```
+
+#### Additional Caching
 - **Historical Data:** Aggressive caching (data doesn't change)
 - **Static Assets:** Long-term caching with hash-based invalidation
+- **Frontend:** TanStack Query with 1-minute staleTime for live data
 
 ### Database Optimization
 - Indexed queries for time-series data
 - Aggregation tables for analytics
 - Connection pooling for serverless
+- Dedicated cache tables with TTL columns
 
-### API Rate Limiting
-- Queue requests to stay within Tesla limits
-- Exponential backoff on rate limit errors
-- Cache vehicle data to reduce API calls
+### API Rate Limiting & Cost Management
+- **Rate Limits:** 10 requests/minute, 1 request/second
+- **Queue System:** Serialize requests to stay within limits
+- **Exponential Backoff:** On rate limit errors (429)
+- **Wake Management:** Only wake vehicles when absolutely necessary
+- **Batch Operations:** Combine related requests using `endpoints` parameter

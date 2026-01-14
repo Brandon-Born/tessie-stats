@@ -2,6 +2,122 @@
 
 > ⚠️ **IMPORTANT:** Tesla's API can change. Always verify against the [official documentation](https://developer.tesla.com/docs/fleet-api).
 
+---
+
+## 🔴 CRITICAL: API Calls Are NOT Free
+
+**Every Tesla API call has a cost.** This section outlines our strict policy for API usage.
+
+### Prime Directive: Minimize API Calls
+
+1. **Cache First, Always**
+   - Every API response MUST be cached in PostgreSQL with timestamp
+   - Check cache BEFORE making any API call
+   - Default cache TTL: **2 minutes** (120 seconds)
+   - Only bypass cache when user explicitly requests fresh data
+
+2. **Check Wake State Before Multiple Calls**
+   - Vehicles sleep after ~15 minutes of inactivity
+   - ALWAYS check vehicle state using `/api/1/vehicles` first
+   - If vehicle is `asleep` or `offline`:
+     - Return cached data, OR
+     - Explicitly wake vehicle only if absolutely necessary
+   - NEVER make multiple API calls to sleeping vehicles without checking
+
+3. **Batch Operations**
+   - Use `endpoints` parameter to request multiple data types in one call
+   - Example: `GET /vehicle_data?endpoints=charge_state,drive_state,vehicle_state`
+   - Don't make 3 separate calls when 1 batched call will do
+
+4. **Smart Polling Strategy**
+   - Active vehicles (driving/charging): Poll every 30-60 seconds
+   - Parked vehicles (awake): Poll every 2-5 minutes
+   - Sleeping vehicles: Use cached data, don't poll
+
+### Cache Schema
+
+```sql
+-- Example cache table structure
+CREATE TABLE vehicle_data_cache (
+  vehicle_id VARCHAR(50) PRIMARY KEY,
+  data JSONB NOT NULL,
+  cached_at TIMESTAMP NOT NULL,
+  expires_at TIMESTAMP NOT NULL
+);
+
+CREATE INDEX idx_cache_expiry ON vehicle_data_cache(expires_at);
+```
+
+### Implementation Pattern
+
+```typescript
+class VehicleService {
+  private readonly CACHE_TTL_SECONDS = 120; // 2 minutes
+
+  async getVehicleData(vehicleId: string, forceFresh = false): Promise<VehicleData> {
+    // Step 1: Check cache (unless force fresh)
+    if (!forceFresh) {
+      const cached = await this.db.query(
+        'SELECT data, cached_at FROM vehicle_data_cache WHERE vehicle_id = $1 AND expires_at > NOW()',
+        [vehicleId]
+      );
+      
+      if (cached.rows.length > 0) {
+        console.log(`Cache hit for vehicle ${vehicleId}`);
+        return cached.rows[0].data;
+      }
+    }
+
+    // Step 2: Check if vehicle is awake (lightweight call)
+    const vehicles = await this.teslaApi.getVehicles(); // Cached at API level
+    const vehicle = vehicles.find(v => v.id === vehicleId);
+    
+    if (vehicle.state !== 'online') {
+      console.log(`Vehicle ${vehicleId} is ${vehicle.state}`);
+      
+      // Return stale cache if available
+      const staleCache = await this.db.query(
+        'SELECT data FROM vehicle_data_cache WHERE vehicle_id = $1',
+        [vehicleId]
+      );
+      
+      if (staleCache.rows.length > 0) {
+        console.log(`Returning stale cache for sleeping vehicle ${vehicleId}`);
+        return staleCache.rows[0].data;
+      }
+      
+      // Only wake if absolutely necessary
+      if (forceFresh) {
+        console.log(`Waking vehicle ${vehicleId} - API COST INCURRED`);
+        await this.teslaApi.wakeVehicle(vehicleId);
+        await this.sleep(5000); // Wait for wake
+      } else {
+        throw new Error(`Vehicle ${vehicleId} is offline and no cache available`);
+      }
+    }
+
+    // Step 3: Fetch from API (batched endpoints)
+    console.log(`Fetching fresh data for vehicle ${vehicleId} - API COST INCURRED`);
+    const data = await this.teslaApi.getVehicleData(vehicleId, {
+      endpoints: 'charge_state,drive_state,vehicle_state,climate_state'
+    });
+
+    // Step 4: Cache the result
+    await this.db.query(
+      `INSERT INTO vehicle_data_cache (vehicle_id, data, cached_at, expires_at)
+       VALUES ($1, $2, NOW(), NOW() + INTERVAL '${this.CACHE_TTL_SECONDS} seconds')
+       ON CONFLICT (vehicle_id) DO UPDATE 
+       SET data = $2, cached_at = NOW(), expires_at = NOW() + INTERVAL '${this.CACHE_TTL_SECONDS} seconds'`,
+      [vehicleId, JSON.stringify(data)]
+    );
+
+    return data;
+  }
+}
+```
+
+---
+
 ## API Overview
 
 Tesla Fleet API provides access to vehicle and energy product data. This document covers the endpoints relevant to Tessie Stats.
