@@ -34,6 +34,7 @@ async function bootstrap(): Promise<void> {
   const port = process.env.API_PORT ?? 3001;
   await app.listen(port);
 
+  // eslint-disable-next-line no-console
   console.log(`🚀 Tessie Stats API running on port ${port}`);
 }
 

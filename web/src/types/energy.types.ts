@@ -111,3 +111,24 @@ export interface EnergyHistory {
   period: StatsPeriod;
   data: EnergyDailySummary[];
 }
+
+/**
+ * Tesla API Response Types
+ */
+
+export interface EnergySiteResponse {
+  id: string;
+  site_name: string;
+  backup_reserve_percent: number;
+  battery_count: number;
+}
+
+export interface EnergySiteData {
+  percentage_charged: number;
+  battery_power: number;
+  load_power: number;
+  grid_power: number;
+  solar_power: number;
+  grid_status: string;
+  timestamp: string;
+}

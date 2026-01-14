@@ -8,13 +8,13 @@ This document outlines everything you need to set up before development can begi
 
 Use this checklist to track your setup progress:
 
-- [ ] Tesla Developer Account created
-- [ ] Tesla App registered and approved
-- [ ] Tesla API credentials obtained
-- [ ] Vercel account created
-- [ ] Vercel Postgres database provisioned
-- [ ] Environment variables configured
-- [ ] Local development environment ready
+- [X] Tesla Developer Account created
+- [X] Tesla App registered and approved
+- [X] Tesla API credentials obtained
+- [X] Vercel account created
+- [X] Vercel Postgres database provisioned
+- [X] Environment variables configured
+- [X] Local development environment ready
 
 ---
 

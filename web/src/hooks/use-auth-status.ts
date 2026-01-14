@@ -16,7 +16,7 @@ export function useAuthStatus(): UseQueryResult<AuthStatusResponse, Error> {
   });
 
   React.useEffect((): void => {
-    if (query.data) setAuthenticated(query.data.isAuthenticated);
+    if (query.data) setAuthenticated(query.data.authenticated);
     if (query.isError) setAuthenticated(false);
   }, [query.data, query.isError, setAuthenticated]);
 

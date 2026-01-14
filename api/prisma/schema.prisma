@@ -1,0 +1,250 @@
+// Tessie Stats Database Schema
+// @see docs/DATABASE_SCHEMA.md for detailed documentation
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User configuration (single user for bespoke app)
+model UserConfig {
+  id                          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teslaRefreshTokenEncrypted  String    @map("tesla_refresh_token_encrypted") @db.Text
+  teslaAccessTokenEncrypted   String?   @map("tesla_access_token_encrypted") @db.Text
+  accessTokenExpiresAt        DateTime? @map("access_token_expires_at") @db.Timestamptz
+  encryptionIv                String    @map("encryption_iv") @db.Text
+  encryptionTag               String    @map("encryption_tag") @db.Text
+  accessTokenIv               String?   @map("access_token_iv") @db.Text
+  accessTokenTag              String?   @map("access_token_tag") @db.Text
+  settings                    Json      @default("{}")
+  createdAt                   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("user_config")
+}
+
+// Tesla Vehicles
+model Vehicle {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teslaId        String          @unique @map("tesla_id") @db.VarChar(50)
+  vin            String          @unique @db.VarChar(17)
+  displayName    String?         @map("display_name") @db.VarChar(100)
+  model          String?         @db.VarChar(20)
+  year           Int?
+  color          String?         @db.VarChar(50)
+  trim           String?         @db.VarChar(50)
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  vehicleStates     VehicleState[]
+  chargingSessions  ChargingSession[]
+
+  @@map("vehicles")
+}
+
+// Vehicle State Snapshots (time-series)
+model VehicleState {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vehicleId              String    @map("vehicle_id") @db.Uuid
+  timestamp              DateTime  @db.Timestamptz
+
+  // Location
+  latitude               Decimal?  @db.Decimal(10, 7)
+  longitude              Decimal?  @db.Decimal(10, 7)
+  heading                Int?
+  speed                  Int?
+
+  // Battery
+  batteryLevel           Int?      @map("battery_level")
+  batteryRange           Decimal?  @map("battery_range") @db.Decimal(6, 1)
+  usableBatteryLevel     Int?      @map("usable_battery_level")
+
+  // Charging
+  chargingState          String?   @map("charging_state") @db.VarChar(20)
+  chargeRate             Decimal?  @map("charge_rate") @db.Decimal(5, 2)
+  chargerPower           Int?      @map("charger_power")
+
+  // Odometer
+  odometer               Decimal?  @db.Decimal(10, 1)
+
+  // Navigation
+  destinationName        String?   @map("destination_name") @db.VarChar(200)
+  destinationLatitude    Decimal?  @map("destination_latitude") @db.Decimal(10, 7)
+  destinationLongitude   Decimal?  @map("destination_longitude") @db.Decimal(10, 7)
+  destinationEta         DateTime? @map("destination_eta") @db.Timestamptz
+  destinationDistance    Decimal?  @map("destination_distance") @db.Decimal(6, 1)
+
+  // Driver
+  driverId               String?   @map("driver_id") @db.Uuid
+
+  // Climate
+  insideTemp             Decimal?  @map("inside_temp") @db.Decimal(4, 1)
+  outsideTemp            Decimal?  @map("outside_temp") @db.Decimal(4, 1)
+
+  // Status
+  isLocked               Boolean?  @map("is_locked")
+  sentryMode             Boolean?  @map("sentry_mode")
+
+  // Raw data for debugging/future use
+  rawData                Json?     @map("raw_data")
+
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  vehicle                Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driver                 Driver?   @relation(fields: [driverId], references: [id])
+
+  @@index([vehicleId, timestamp(sort: Desc)], name: "idx_vehicle_states_vehicle_timestamp")
+  @@index([timestamp(sort: Desc)], name: "idx_vehicle_states_timestamp")
+  @@map("vehicle_states")
+}
+
+// Charging Sessions
+model ChargingSession {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  vehicleId           String    @map("vehicle_id") @db.Uuid
+
+  // Timing
+  startedAt           DateTime  @map("started_at") @db.Timestamptz
+  endedAt             DateTime? @map("ended_at") @db.Timestamptz
+  durationMinutes     Int?      @map("duration_minutes")
+
+  // Energy
+  startBatteryLevel   Int?      @map("start_battery_level")
+  endBatteryLevel     Int?      @map("end_battery_level")
+  energyAddedKwh      Decimal?  @map("energy_added_kwh") @db.Decimal(6, 2)
+
+  // Charging details
+  chargeRateKwAvg     Decimal?  @map("charge_rate_kw_avg") @db.Decimal(5, 2)
+  chargeRateKwMax     Decimal?  @map("charge_rate_kw_max") @db.Decimal(5, 2)
+  chargerType         String?   @map("charger_type") @db.VarChar(30)
+  chargerName         String?   @map("charger_name") @db.VarChar(100)
+
+  // Location
+  locationName        String?   @map("location_name") @db.VarChar(200)
+  latitude            Decimal?  @db.Decimal(10, 7)
+  longitude           Decimal?  @db.Decimal(10, 7)
+
+  // Cost
+  cost                Decimal?  @db.Decimal(8, 2)
+  costCurrency        String?   @default("USD") @map("cost_currency") @db.VarChar(3)
+
+  // Solar attribution (calculated)
+  solarEnergyKwh      Decimal?  @map("solar_energy_kwh") @db.Decimal(6, 2)
+  solarPercentage     Decimal?  @map("solar_percentage") @db.Decimal(5, 2)
+
+  // Status
+  status              String    @default("in_progress") @db.VarChar(20)
+
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  vehicle             Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, startedAt(sort: Desc)], name: "idx_charging_sessions_vehicle")
+  @@index([startedAt(sort: Desc)], name: "idx_charging_sessions_date")
+  @@map("charging_sessions")
+}
+
+// Drivers (multi-driver tracking)
+model Driver {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String    @db.VarChar(100)
+  profileId      String?   @map("profile_id") @db.VarChar(50)
+  isPrimary      Boolean   @default(false) @map("is_primary")
+  avatarUrl      String?   @map("avatar_url") @db.VarChar(500)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  vehicleStates  VehicleState[]
+
+  @@map("drivers")
+}
+
+// Powerwall/Solar Sites
+model EnergySite {
+  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  teslaSiteId              String    @unique @map("tesla_site_id") @db.VarChar(50)
+  siteName                 String?   @map("site_name") @db.VarChar(100)
+  timeZone                 String?   @map("time_zone") @db.VarChar(50)
+  batteryCount             Int?      @default(0) @map("battery_count")
+  totalBatteryCapacityKwh  Decimal?  @map("total_battery_capacity_kwh") @db.Decimal(8, 2)
+  solarCapacityKw          Decimal?  @map("solar_capacity_kw") @db.Decimal(6, 2)
+  createdAt                DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  energyStates             EnergyState[]
+  energyDaily              EnergyDaily[]
+
+  @@map("energy_sites")
+}
+
+// Energy State Snapshots (time-series)
+model EnergyState {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  siteId             String    @map("site_id") @db.Uuid
+  timestamp          DateTime  @db.Timestamptz
+
+  // Power flows (Watts) - negative means exporting/charging
+  solarPowerW        Decimal?  @map("solar_power_w") @db.Decimal(10, 2)
+  batteryPowerW      Decimal?  @map("battery_power_w") @db.Decimal(10, 2)
+  gridPowerW         Decimal?  @map("grid_power_w") @db.Decimal(10, 2)
+  loadPowerW         Decimal?  @map("load_power_w") @db.Decimal(10, 2)
+
+  // Battery state
+  batteryPercentage  Decimal?  @map("battery_percentage") @db.Decimal(5, 2)
+
+  // Grid status
+  gridStatus         String?   @map("grid_status") @db.VarChar(20)
+
+  // Raw data
+  rawData            Json?     @map("raw_data")
+
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  site               EnergySite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, timestamp(sort: Desc)], name: "idx_energy_states_site_timestamp")
+  @@index([timestamp(sort: Desc)], name: "idx_energy_states_timestamp")
+  @@map("energy_states")
+}
+
+// Daily Energy Aggregates
+model EnergyDaily {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  siteId                 String   @map("site_id") @db.Uuid
+  date                   DateTime @db.Date
+
+  // Production (kWh)
+  solarProducedKwh       Decimal? @default(0) @map("solar_produced_kwh") @db.Decimal(8, 2)
+
+  // Solar distribution (kWh)
+  solarToHomeKwh         Decimal? @default(0) @map("solar_to_home_kwh") @db.Decimal(8, 2)
+  solarToBatteryKwh      Decimal? @default(0) @map("solar_to_battery_kwh") @db.Decimal(8, 2)
+  solarToGridKwh         Decimal? @default(0) @map("solar_to_grid_kwh") @db.Decimal(8, 2)
+
+  // Battery (kWh)
+  batteryChargedKwh      Decimal? @default(0) @map("battery_charged_kwh") @db.Decimal(8, 2)
+  batteryDischargedKwh   Decimal? @default(0) @map("battery_discharged_kwh") @db.Decimal(8, 2)
+
+  // Grid (kWh)
+  gridImportedKwh        Decimal? @default(0) @map("grid_imported_kwh") @db.Decimal(8, 2)
+  gridExportedKwh        Decimal? @default(0) @map("grid_exported_kwh") @db.Decimal(8, 2)
+
+  // Home consumption (kWh)
+  homeConsumedKwh        Decimal? @default(0) @map("home_consumed_kwh") @db.Decimal(8, 2)
+
+  // Calculated metrics
+  selfConsumptionPct     Decimal? @map("self_consumption_pct") @db.Decimal(5, 2)
+  solarOffsetPct         Decimal? @map("solar_offset_pct") @db.Decimal(5, 2)
+
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  site                   EnergySite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, date])
+  @@index([siteId, date(sort: Desc)], name: "idx_energy_daily_site_date")
+  @@map("energy_daily")
+}

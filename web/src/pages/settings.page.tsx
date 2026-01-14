@@ -1,12 +1,100 @@
 import * as React from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Modal } from '@/components/ui';
 import { useThemeStore } from '@/stores/theme.store';
+import { useAuthStore } from '@/stores/auth.store';
+import { authService } from '@/services/auth.service';
 
 export function SettingsPage(): React.JSX.Element {
+  const navigate = useNavigate();
   const mode = useThemeStore((s) => s.mode);
   const setMode = useThemeStore((s) => s.setMode);
+  const setAuthenticated = useAuthStore((s) => s.setAuthenticated);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isOpen, setIsOpen] = React.useState<boolean>(false);
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [authStatus, setAuthStatus] = React.useState<{
+    authenticated: boolean;
+    hasToken: boolean;
+    message?: string;
+  } | null>(null);
+  const [message, setMessage] = React.useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Check auth status on mount and handle OAuth callback result
+  React.useEffect(() => {
+    void checkAuthStatus();
+
+    // Handle OAuth callback result from query params
+    const authResult = searchParams.get('auth');
+    if (authResult === 'success') {
+      setMessage({ type: 'success', text: 'Tesla account connected successfully!' });
+      // Clean up URL
+      searchParams.delete('auth');
+      setSearchParams(searchParams, { replace: true });
+    } else if (authResult === 'error') {
+      setMessage({ type: 'error', text: 'Failed to connect Tesla account. Please try again.' });
+      // Clean up URL
+      searchParams.delete('auth');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const checkAuthStatus = async (): Promise<void> => {
+    try {
+      const status = await authService.getStatus();
+      setAuthStatus(status);
+    } catch (error) {
+      console.error('Failed to check auth status:', error);
+    }
+  };
+
+  const handleConnectTesla = async (): Promise<void> => {
+    setIsLoading(true);
+    try {
+      const { url } = await authService.getAuthUrl();
+      // Redirect to Tesla OAuth
+      window.location.href = url;
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to start OAuth flow',
+      });
+      setIsLoading(false);
+    }
+  };
+
+  const handleDisconnect = async (): Promise<void> => {
+    if (!window.confirm('Are you sure you want to disconnect your Tesla account?')) {
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage(null);
+
+    try {
+      const result = await authService.deleteToken();
+      setMessage({ type: 'success', text: result.message });
+      void checkAuthStatus();
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to disconnect',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogout = (): void => {
+    if (!window.confirm('Are you sure you want to log out?')) {
+      return;
+    }
+
+    authService.logout();
+    setAuthenticated(false);
+    navigate('/login');
+  };
 
   return (
     <div className="space-y-6">
@@ -24,6 +112,79 @@ export function SettingsPage(): React.JSX.Element {
         <Card>
           <CardHeader>
             <div>
+              <CardTitle>Tesla Authentication</CardTitle>
+              <CardDescription>
+                Connect your Tesla account to enable vehicle and energy data syncing.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {authStatus && (
+                <div
+                  className={`rounded-lg border px-4 py-3 text-sm ${
+                    authStatus.authenticated
+                      ? 'border-green-500/20 bg-green-500/10 text-green-400'
+                      : 'border-yellow-500/20 bg-yellow-500/10 text-yellow-400'
+                  }`}
+                >
+                  <div className="font-medium">
+                    {authStatus.authenticated ? '✓ Connected' : '⚠ Not Connected'}
+                  </div>
+                  {authStatus.message && (
+                    <div className="mt-1 text-xs opacity-80">{authStatus.message}</div>
+                  )}
+                </div>
+              )}
+
+              {message && (
+                <div
+                  className={`rounded-lg border px-4 py-3 text-sm ${
+                    message.type === 'success'
+                      ? 'border-green-500/20 bg-green-500/10 text-green-400'
+                      : 'border-red-500/20 bg-red-500/10 text-red-400'
+                  }`}
+                >
+                  {message.text}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                {!authStatus?.authenticated ? (
+                  <Button
+                    variant="primary"
+                    onClick={() => void handleConnectTesla()}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Connecting...' : 'Connect Tesla Account'}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => void handleDisconnect()}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Disconnecting...' : 'Disconnect'}
+                  </Button>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-border/40 bg-surface-2/40 p-4 text-xs text-muted">
+                <div className="font-medium text-text mb-2">How it works:</div>
+                <ol className="space-y-1 list-decimal list-inside">
+                  <li>Click "Connect Tesla Account"</li>
+                  <li>Log in with your Tesla credentials</li>
+                  <li>Authorize Tessie Stats to access your data</li>
+                  <li>You'll be redirected back here automatically</li>
+                </ol>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div>
               <CardTitle>Appearance</CardTitle>
               <CardDescription>Dark-first Tesla styling.</CardDescription>
             </div>
@@ -35,6 +196,25 @@ export function SettingsPage(): React.JSX.Element {
               </Button>
               <Button variant={mode === 'light' ? 'primary' : 'outline'} onClick={() => setMode('light')}>
                 Light
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div>
+              <CardTitle>Account Security</CardTitle>
+              <CardDescription>Manage your app authentication.</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-muted">
+                Log out to require password authentication on next visit.
+              </p>
+              <Button variant="outline" onClick={handleLogout}>
+                Log Out
               </Button>
             </div>
           </CardContent>
@@ -69,4 +249,3 @@ export function SettingsPage(): React.JSX.Element {
     </div>
   );
 }
-

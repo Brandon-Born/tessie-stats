@@ -8,11 +8,13 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
 import { AppShell } from '@/components/layout/app-shell';
+import { ProtectedRoute } from '@/components/auth/protected-route';
 import {
   ChargingPage,
   DashboardPage,
   DriversPage,
   EnergyPage,
+  LoginPage,
   NotFoundPage,
   SettingsPage,
   VehiclesPage,
@@ -22,14 +24,20 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<AppShell />}>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/vehicles" element={<VehiclesPage />} />
-          <Route path="/energy" element={<EnergyPage />} />
-          <Route path="/charging" element={<ChargingPage />} />
-          <Route path="/drivers" element={<DriversPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<NotFoundPage />} />
+        {/* Public routes */}
+        <Route path="/login" element={<LoginPage />} />
+
+        {/* Protected routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppShell />}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/vehicles" element={<VehiclesPage />} />
+            <Route path="/energy" element={<EnergyPage />} />
+            <Route path="/charging" element={<ChargingPage />} />
+            <Route path="/drivers" element={<DriversPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>

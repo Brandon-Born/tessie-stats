@@ -9,14 +9,21 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 
-// Feature modules will be imported here as they are created:
-// import { AuthModule } from './modules/auth/auth.module';
-// import { VehicleModule } from './modules/vehicle/vehicle.module';
-// import { PowerwallModule } from './modules/powerwall/powerwall.module';
+// Database
+import { DatabaseModule } from './database/database.module';
+
+// Core modules
+import { WellKnownModule } from './modules/well-known/well-known.module';
+
+// Feature modules
+import { AuthModule } from './modules/auth/auth.module';
+import { TeslaModule } from './modules/tesla/tesla.module';
+import { VehicleModule } from './modules/vehicle/vehicle.module';
+import { EnergyModule } from './modules/energy/energy.module';
+
+// Additional feature modules will be imported here as they are created:
 // import { ChargingModule } from './modules/charging/charging.module';
-// import { SolarModule } from './modules/solar/solar.module';
 // import { SyncModule } from './modules/sync/sync.module';
-// import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
@@ -29,13 +36,20 @@ import { ScheduleModule } from '@nestjs/schedule';
     // Scheduled tasks (cron jobs)
     ScheduleModule.forRoot(),
 
-    // Feature modules - uncomment as implemented:
-    // DatabaseModule,
-    // AuthModule,
-    // VehicleModule,
-    // PowerwallModule,
+    // Database (global)
+    DatabaseModule,
+
+    // Core modules (public endpoints)
+    WellKnownModule,
+
+    // Feature modules
+    AuthModule,
+    TeslaModule,
+    VehicleModule,
+    EnergyModule,
+
+    // Additional feature modules - add as implemented:
     // ChargingModule,
-    // SolarModule,
     // SyncModule,
   ],
   controllers: [],

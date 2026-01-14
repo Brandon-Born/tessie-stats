@@ -100,3 +100,47 @@ export interface Driver {
   isPrimary: boolean;
   avatarUrl: string | null;
 }
+
+/**
+ * Tesla API Response Types
+ */
+
+export interface TeslaVehicle {
+  id: string;
+  vehicle_id: number;
+  vin: string;
+  display_name: string;
+  state: string;
+}
+
+export interface VehicleData {
+  id: string;
+  vehicle_id: number;
+  vin: string;
+  display_name: string;
+  state: string;
+  charge_state?: {
+    battery_level: number;
+    battery_range: number;
+    usable_battery_level: number;
+    charging_state: string;
+    charge_rate: number;
+    charger_power: number;
+    time_to_full_charge: number;
+  };
+  drive_state?: {
+    latitude: number;
+    longitude: number;
+    heading: number;
+    speed: number | null;
+  };
+  climate_state?: {
+    inside_temp: number;
+    outside_temp: number;
+  };
+  vehicle_state?: {
+    odometer: number;
+    locked: boolean;
+    sentry_mode: boolean;
+  };
+}
