@@ -13,8 +13,10 @@ import { AppModule } from './app.module';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
-  // Global prefix for all routes
-  app.setGlobalPrefix('api');
+  // Global prefix for all routes (except .well-known)
+  app.setGlobalPrefix('api', {
+    exclude: ['.well-known/appspecific/com.tesla.3p.public-key.pem'],
+  });
 
   // Global validation pipe
   app.useGlobalPipes(
