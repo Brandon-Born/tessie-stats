@@ -120,12 +120,18 @@ describe('AuthService', () => {
         'auth-code',
         expect.stringContaining('/api/auth/callback')
       );
+      const expectedCreateData = {
+        teslaRefreshTokenEncrypted: 'encrypted-data',
+        encryptionIv: 'iv-data',
+        encryptionTag: 'tag-data',
+        teslaAccessTokenEncrypted: 'encrypted-data',
+        accessTokenIv: 'iv-data',
+        accessTokenTag: 'tag-data',
+        accessTokenExpiresAt: expect.any(Date) as unknown as Date,
+      };
+
       expect(mockPrismaService.userConfig.create).toHaveBeenCalledWith({
-        data: {
-          teslaRefreshTokenEncrypted: 'encrypted-data',
-          encryptionIv: 'iv-data',
-          encryptionTag: 'tag-data',
-        },
+        data: expectedCreateData,
       });
     });
 
@@ -148,13 +154,19 @@ describe('AuthService', () => {
 
       await service.handleCallback('auth-code');
 
+      const expectedUpdateData = {
+        teslaRefreshTokenEncrypted: 'encrypted-data',
+        encryptionIv: 'iv-data',
+        encryptionTag: 'tag-data',
+        teslaAccessTokenEncrypted: 'encrypted-data',
+        accessTokenIv: 'iv-data',
+        accessTokenTag: 'tag-data',
+        accessTokenExpiresAt: expect.any(Date) as unknown as Date,
+      };
+
       expect(mockPrismaService.userConfig.update).toHaveBeenCalledWith({
         where: { id: 'existing-id' },
-        data: {
-          teslaRefreshTokenEncrypted: 'encrypted-data',
-          encryptionIv: 'iv-data',
-          encryptionTag: 'tag-data',
-        },
+        data: expectedUpdateData,
       });
     });
 
