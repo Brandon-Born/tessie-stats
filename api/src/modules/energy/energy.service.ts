@@ -30,8 +30,9 @@ export class EnergyService {
    */
   async getEnergySites(): Promise<EnergySite[]> {
     try {
-      const accessToken = await this.authService.getAccessToken();
-      return await this.teslaService.getEnergySites(accessToken);
+      return await this.authService.executeTeslaCall((accessToken) =>
+        this.teslaService.getEnergySites(accessToken)
+      );
     } catch (error) {
       this.logger.error('Failed to fetch energy sites', error);
       throw error;
@@ -67,8 +68,9 @@ export class EnergyService {
 
       // STEP 2: Fetch from API
       this.logger.debug(`Fetching fresh data for energy site ${siteId} - API COST INCURRED`);
-      const accessToken = await this.authService.getAccessToken();
-      const data = await this.teslaService.getSiteLiveData(accessToken, siteId);
+      const data = await this.authService.executeTeslaCall((accessToken) =>
+        this.teslaService.getSiteLiveData(accessToken, siteId)
+      );
 
       // STEP 3: Cache the result
       const expiresAt = new Date(Date.now() + this.CACHE_TTL_SECONDS * 1000);

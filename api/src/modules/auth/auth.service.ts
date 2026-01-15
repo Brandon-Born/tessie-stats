@@ -25,6 +25,13 @@ export class AuthService {
     private readonly teslaService: TeslaService
   ) {}
 
+  private isUnauthorized(error: unknown): boolean {
+    return (
+      error instanceof HttpException &&
+      (error.getStatus() as HttpStatus) === HttpStatus.UNAUTHORIZED
+    );
+  }
+
   /**
    * Get the Tesla OAuth authorization URL
    */
@@ -149,7 +156,7 @@ export class AuthService {
   /**
    * Get fresh access token (uses cached token if still valid)
    */
-  async getAccessToken(): Promise<string> {
+  async getAccessToken(forceRefresh = false): Promise<string> {
     const config = await this.prisma.userConfig.findFirst();
 
     if (!config) {
@@ -157,22 +164,24 @@ export class AuthService {
     }
 
     // Check if we have a cached access token that's still valid
-    if (
-      config.teslaAccessTokenEncrypted &&
-      config.accessTokenIv &&
-      config.accessTokenTag &&
-      config.accessTokenExpiresAt &&
-      config.accessTokenExpiresAt > new Date()
-    ) {
-      try {
-        return decrypt(
-          config.teslaAccessTokenEncrypted,
-          config.accessTokenIv,
-          config.accessTokenTag
-        );
-      } catch (error) {
-        this.logger.warn('Failed to decrypt cached access token, will refresh', error);
-        // Fall through to refresh
+    if (!forceRefresh) {
+      if (
+        config.teslaAccessTokenEncrypted &&
+        config.accessTokenIv &&
+        config.accessTokenTag &&
+        config.accessTokenExpiresAt &&
+        config.accessTokenExpiresAt > new Date()
+      ) {
+        try {
+          return decrypt(
+            config.teslaAccessTokenEncrypted,
+            config.accessTokenIv,
+            config.accessTokenTag
+          );
+        } catch (error) {
+          this.logger.warn('Failed to decrypt cached access token, will refresh', error);
+          // Fall through to refresh
+        }
       }
     }
 
@@ -200,6 +209,25 @@ export class AuthService {
     });
 
     return tokenPair.accessToken;
+  }
+
+  /**
+   * Execute a Tesla API call with automatic 401 refresh retry
+   */
+  async executeTeslaCall<T>(operation: (accessToken: string) => Promise<T>): Promise<T> {
+    const accessToken = await this.getAccessToken();
+
+    try {
+      return await operation(accessToken);
+    } catch (error) {
+      if (this.isUnauthorized(error)) {
+        this.logger.warn('Tesla access token rejected, refreshing and retrying once');
+        const refreshedToken = await this.getAccessToken(true);
+        return await operation(refreshedToken);
+      }
+
+      throw error;
+    }
   }
 
   /**

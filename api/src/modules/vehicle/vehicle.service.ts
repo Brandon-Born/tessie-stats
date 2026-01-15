@@ -44,8 +44,9 @@ export class VehicleService {
 
       // Fetch from API
       this.logger.debug('Fetching vehicle list from Tesla API');
-      const accessToken = await this.authService.getAccessToken();
-      const vehicles = await this.teslaService.getVehicles(accessToken);
+      const vehicles = await this.authService.executeTeslaCall((accessToken) =>
+        this.teslaService.getVehicles(accessToken)
+      );
 
       // Cache the result
       const expiresAt = new Date(Date.now() + this.VEHICLE_LIST_CACHE_TTL_SECONDS * 1000);
@@ -140,16 +141,15 @@ export class VehicleService {
 
       // STEP 4: Fetch from API with batched endpoints
       this.logger.debug(`Fetching fresh data for vehicle ${vehicleId} - API COST INCURRED`);
-      const accessToken = await this.authService.getAccessToken();
-
-      // Batch multiple endpoints into single API call
-      const data = await this.teslaService.getVehicleData(accessToken, vehicleId, [
-        'charge_state',
-        'drive_state',
-        'vehicle_state',
-        'climate_state',
-        'location_data',
-      ]);
+      const data = await this.authService.executeTeslaCall((accessToken) =>
+        this.teslaService.getVehicleData(accessToken, vehicleId, [
+          'charge_state',
+          'drive_state',
+          'vehicle_state',
+          'climate_state',
+          'location_data',
+        ])
+      );
 
       // STEP 5: Cache the result
       const expiresAt = new Date(Date.now() + this.CACHE_TTL_SECONDS * 1000);
@@ -182,8 +182,9 @@ export class VehicleService {
   async wakeVehicle(vehicleId: string): Promise<{ state: string }> {
     try {
       this.logger.warn(`Attempting to wake vehicle ${vehicleId} - this drains battery`);
-      const accessToken = await this.authService.getAccessToken();
-      const result = await this.teslaService.wakeVehicle(accessToken, vehicleId);
+      const result = await this.authService.executeTeslaCall((accessToken) =>
+        this.teslaService.wakeVehicle(accessToken, vehicleId)
+      );
 
       // Invalidate vehicle list cache since state changed
       await this.prisma.vehicleListCache.deleteMany({});

@@ -5,7 +5,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { HttpException, NotFoundException } from '@nestjs/common';
+import { HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../../database/prisma.service';
 import { TeslaService } from '../tesla/tesla.service';
@@ -229,6 +229,41 @@ describe('AuthService', () => {
 
       expect(result.authenticated).toBe(false);
       expect(result.hasToken).toBe(false);
+    });
+  });
+
+  describe('executeTeslaCall', () => {
+    it('retries once on 401', async () => {
+      const getAccessTokenSpy = jest
+        .spyOn(service, 'getAccessToken')
+        .mockImplementation((forceRefresh?: boolean) =>
+          Promise.resolve(forceRefresh ? 'token-2' : 'token-1')
+        );
+
+      const operation = jest
+        .fn()
+        .mockRejectedValueOnce(new HttpException('Tesla API authentication failed', 401))
+        .mockResolvedValueOnce('ok');
+
+      const result = await service.executeTeslaCall(operation);
+
+      expect(result).toBe('ok');
+      expect(operation).toHaveBeenCalledTimes(2);
+      expect(operation).toHaveBeenNthCalledWith(1, 'token-1');
+      expect(operation).toHaveBeenNthCalledWith(2, 'token-2');
+      expect(getAccessTokenSpy).toHaveBeenCalledTimes(2);
+      expect(getAccessTokenSpy).toHaveBeenLastCalledWith(true);
+    });
+
+    it('rethrows non-401 errors', async () => {
+      const getAccessTokenSpy = jest.spyOn(service, 'getAccessToken').mockResolvedValue('token-1');
+      const error = new HttpException('Bad request', HttpStatus.BAD_REQUEST);
+      const operation = jest.fn().mockRejectedValue(error);
+
+      await expect(service.executeTeslaCall(operation)).rejects.toThrow(error);
+
+      expect(operation).toHaveBeenCalledTimes(1);
+      expect(getAccessTokenSpy).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -448,6 +448,7 @@ Authorization: Bearer {access_token}
 }
 ```
 → Refresh the access token
+→ The backend will refresh and retry once when a Tesla API call returns 401
 
 **403 Forbidden:**
 ```json
