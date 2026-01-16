@@ -68,4 +68,19 @@ describe('SyncService', () => {
       });
     });
   });
+
+  describe('triggerSync', () => {
+    it('returns success and updates status', async () => {
+      mockPrismaService.vehicleDataCache.deleteMany.mockResolvedValue({ count: 1 });
+      mockPrismaService.energyDataCache.deleteMany.mockResolvedValue({ count: 1 });
+      mockPrismaService.vehicleListCache.deleteMany.mockResolvedValue({ count: 1 });
+
+      const result = await service.triggerSync();
+      const status = service.getSyncStatus();
+
+      expect(result.success).toBe(true);
+      expect(status.lastRunStatus).toBe('success');
+      expect(status.lastRunAt).toBeInstanceOf(Date);
+    });
+  });
 });

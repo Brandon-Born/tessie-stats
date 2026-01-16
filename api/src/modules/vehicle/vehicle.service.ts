@@ -7,11 +7,17 @@
  */
 
 import { Injectable, Logger, NotFoundException, HttpException, HttpStatus } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, VehicleState } from '@prisma/client';
 import { TeslaService } from '../tesla/tesla.service';
 import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../../database/prisma.service';
 import { TeslaVehicle, VehicleData } from '../tesla/tesla.types';
+import {
+  VehicleHistoryQueryDto,
+  VehicleHistoryResponse,
+  VehicleHistoryItem,
+  VehicleStateResponse,
+} from './dto/vehicle-history.dto';
 
 @Injectable()
 export class VehicleService {
@@ -24,6 +30,69 @@ export class VehicleService {
     private readonly authService: AuthService,
     private readonly prisma: PrismaService
   ) {}
+
+  private isUuid(value: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(value);
+  }
+
+  private toNumber(value: Prisma.Decimal | number | null): number | null {
+    if (value === null) {
+      return null;
+    }
+
+    return Number(value);
+  }
+
+  private async resolveVehicleId(identifier: string): Promise<string> {
+    const conditions: Prisma.VehicleWhereInput[] = [];
+
+    if (this.isUuid(identifier)) {
+      conditions.push({ id: identifier });
+    }
+
+    conditions.push({ teslaId: identifier });
+    conditions.push({ vin: identifier });
+
+    const vehicle = await this.prisma.vehicle.findFirst({
+      where: { OR: conditions },
+    });
+
+    if (!vehicle) {
+      throw new NotFoundException(`Vehicle ${identifier} not found`);
+    }
+
+    return vehicle.id;
+  }
+
+  private mapVehicleState(state: VehicleState, includeRaw: boolean): VehicleHistoryItem {
+    return {
+      id: state.id,
+      timestamp: state.timestamp.toISOString(),
+      latitude: this.toNumber(state.latitude),
+      longitude: this.toNumber(state.longitude),
+      heading: state.heading,
+      speed: state.speed,
+      batteryLevel: state.batteryLevel,
+      batteryRange: this.toNumber(state.batteryRange),
+      usableBatteryLevel: state.usableBatteryLevel,
+      chargingState: state.chargingState,
+      chargeRate: this.toNumber(state.chargeRate),
+      chargerPower: state.chargerPower,
+      odometer: this.toNumber(state.odometer),
+      destinationName: state.destinationName,
+      destinationLatitude: this.toNumber(state.destinationLatitude),
+      destinationLongitude: this.toNumber(state.destinationLongitude),
+      destinationEta: state.destinationEta ? state.destinationEta.toISOString() : null,
+      destinationDistance: this.toNumber(state.destinationDistance),
+      driverId: state.driverId,
+      insideTemp: this.toNumber(state.insideTemp),
+      outsideTemp: this.toNumber(state.outsideTemp),
+      isLocked: state.isLocked,
+      sentryMode: state.sentryMode,
+      ...(includeRaw ? { rawData: (state.rawData as Record<string, unknown> | null) ?? null } : {}),
+    };
+  }
 
   /**
    * Get list of all vehicles (with lightweight caching for wake state checks)
@@ -173,6 +242,57 @@ export class VehicleService {
       this.logger.error(`Failed to fetch vehicle data for ${vehicleId}`, error);
       throw error;
     }
+  }
+
+  /**
+   * Get vehicle state history from stored snapshots
+   */
+  async getVehicleHistory(
+    vehicleId: string,
+    query: VehicleHistoryQueryDto
+  ): Promise<VehicleHistoryResponse> {
+    const resolvedVehicleId = await this.resolveVehicleId(vehicleId);
+    const { startDate, endDate, limit, includeRaw } = query;
+    const where: Prisma.VehicleStateWhereInput = { vehicleId: resolvedVehicleId };
+
+    if (startDate ?? endDate) {
+      where.timestamp = {
+        ...(startDate ? { gte: new Date(startDate) } : {}),
+        ...(endDate ? { lte: new Date(endDate) } : {}),
+      };
+    }
+
+    const states = await this.prisma.vehicleState.findMany({
+      where,
+      orderBy: { timestamp: 'desc' },
+      take: limit ?? 200,
+    });
+
+    const history: VehicleHistoryItem[] = states.map((state) =>
+      this.mapVehicleState(state, includeRaw ?? false)
+    );
+
+    return {
+      vehicleId: resolvedVehicleId,
+      history,
+    };
+  }
+
+  /**
+   * Get the latest stored vehicle state snapshot
+   */
+  async getLatestVehicleState(vehicleId: string): Promise<VehicleStateResponse> {
+    const resolvedVehicleId = await this.resolveVehicleId(vehicleId);
+    const state = await this.prisma.vehicleState.findFirst({
+      where: { vehicleId: resolvedVehicleId },
+      orderBy: { timestamp: 'desc' },
+    });
+
+    if (!state) {
+      throw new NotFoundException(`No vehicle state history found for ${vehicleId}`);
+    }
+
+    return this.mapVehicleState(state, false);
   }
 
   /**

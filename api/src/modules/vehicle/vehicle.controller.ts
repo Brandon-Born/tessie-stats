@@ -18,6 +18,11 @@ import {
 import { VehicleService } from './vehicle.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TeslaVehicle, VehicleData } from '../tesla/tesla.types';
+import {
+  VehicleHistoryQueryDto,
+  VehicleHistoryResponse,
+  VehicleStateResponse,
+} from './dto/vehicle-history.dto';
 
 @Controller('vehicles')
 @UseGuards(JwtAuthGuard)
@@ -52,6 +57,27 @@ export class VehicleController {
     @Query('forceFresh', new ParseBoolPipe({ optional: true })) forceFresh?: boolean
   ): Promise<VehicleData> {
     return this.vehicleService.getVehicleData(id, forceFresh ?? false);
+  }
+
+  /**
+   * GET /api/vehicles/:id/state
+   * Get the latest stored vehicle state snapshot
+   */
+  @Get(':id/state')
+  async getVehicleState(@Param('id') id: string): Promise<VehicleStateResponse> {
+    return this.vehicleService.getLatestVehicleState(id);
+  }
+
+  /**
+   * GET /api/vehicles/:id/history
+   * Get historical vehicle state snapshots
+   */
+  @Get(':id/history')
+  async getVehicleHistory(
+    @Param('id') id: string,
+    @Query() query: VehicleHistoryQueryDto
+  ): Promise<VehicleHistoryResponse> {
+    return this.vehicleService.getVehicleHistory(id, query);
   }
 
   /**

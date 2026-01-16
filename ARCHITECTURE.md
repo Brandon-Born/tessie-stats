@@ -423,7 +423,6 @@ CREATE INDEX idx_energy_daily_site_date ON energy_daily(site_id, date DESC);
 ### Authentication
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/auth/token` | Store Tesla refresh token |
 | GET | `/api/auth/status` | Check authentication status |
 | DELETE | `/api/auth/token` | Remove stored token |
 

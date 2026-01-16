@@ -13,9 +13,20 @@ export interface CacheCleanupResult {
   vehicleListDeleted: number;
 }
 
+export interface SyncStatusState {
+  lastRunAt: Date | null;
+  lastRunStatus: 'never' | 'success' | 'failed';
+  lastRunMessage: string | null;
+}
+
 @Injectable()
 export class SyncService {
   private readonly logger = new Logger(SyncService.name);
+  private status: SyncStatusState = {
+    lastRunAt: null,
+    lastRunStatus: 'never',
+    lastRunMessage: null,
+  };
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -49,5 +60,48 @@ export class SyncService {
     );
 
     return result;
+  }
+
+  /**
+   * Run maintenance sync (currently cache cleanup only)
+   */
+  async triggerSync(): Promise<{
+    success: boolean;
+    message: string;
+    cleanup?: CacheCleanupResult;
+  }> {
+    try {
+      const cleanup = await this.cleanupExpiredCache();
+      this.status = {
+        lastRunAt: new Date(),
+        lastRunStatus: 'success',
+        lastRunMessage: 'Cache cleanup completed',
+      };
+
+      return {
+        success: true,
+        message: 'Cache cleanup completed',
+        cleanup,
+      };
+    } catch (error) {
+      this.logger.error('Manual sync failed', error);
+      this.status = {
+        lastRunAt: new Date(),
+        lastRunStatus: 'failed',
+        lastRunMessage: 'Cache cleanup failed',
+      };
+
+      return {
+        success: false,
+        message: 'Cache cleanup failed',
+      };
+    }
+  }
+
+  /**
+   * Get last sync status
+   */
+  getSyncStatus(): SyncStatusState {
+    return this.status;
   }
 }

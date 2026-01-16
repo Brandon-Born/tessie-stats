@@ -9,6 +9,8 @@ import { Controller, Get, Param, Query, Delete, ParseBoolPipe, UseGuards } from 
 import { EnergyService } from './energy.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { EnergySite, LiveEnergyData } from '../tesla/tesla.types';
+import { EnergyHistoryQueryDto, EnergyHistoryResponse } from './dto/energy-history.dto';
+import { SolarStatsQueryDto, SolarStatsResponse } from './dto/solar-stats.dto';
 
 @Controller('energy')
 @UseGuards(JwtAuthGuard)
@@ -37,6 +39,39 @@ export class EnergyController {
     @Query('forceFresh', new ParseBoolPipe({ optional: true })) forceFresh?: boolean
   ): Promise<LiveEnergyData> {
     return this.energyService.getEnergySiteData(id, forceFresh ?? false);
+  }
+
+  /**
+   * GET /api/energy/sites/:id/live
+   * Alias for live energy site data
+   */
+  @Get('sites/:id/live')
+  async getEnergySiteLiveData(
+    @Param('id') id: string,
+    @Query('forceFresh', new ParseBoolPipe({ optional: true })) forceFresh?: boolean
+  ): Promise<LiveEnergyData> {
+    return this.energyService.getEnergySiteData(id, forceFresh ?? false);
+  }
+
+  /**
+   * GET /api/energy/sites/:id/history
+   * Get historical energy data
+   */
+  @Get('sites/:id/history')
+  async getEnergyHistory(
+    @Param('id') id: string,
+    @Query() query: EnergyHistoryQueryDto
+  ): Promise<EnergyHistoryResponse> {
+    return this.energyService.getEnergyHistory(id, query);
+  }
+
+  /**
+   * GET /api/energy/solar/stats
+   * Get solar summary statistics
+   */
+  @Get('solar/stats')
+  async getSolarStats(@Query() query: SolarStatsQueryDto): Promise<SolarStatsResponse> {
+    return this.energyService.getSolarStats(query);
   }
 
   /**
