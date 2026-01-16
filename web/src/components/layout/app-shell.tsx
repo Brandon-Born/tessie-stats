@@ -17,7 +17,6 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/vehicles', label: 'Vehicles' },
   { to: '/energy', label: 'Energy' },
   { to: '/charging', label: 'Charging' },
-  { to: '/drivers', label: 'Drivers' },
   { to: '/settings', label: 'Settings' },
 ];
 

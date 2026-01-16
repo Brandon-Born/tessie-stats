@@ -78,9 +78,6 @@ model VehicleState {
   destinationEta         DateTime? @map("destination_eta") @db.Timestamptz
   destinationDistance    Decimal?  @map("destination_distance") @db.Decimal(6, 1)
 
-  // Driver
-  driverId               String?   @map("driver_id") @db.Uuid
-
   // Climate
   insideTemp             Decimal?  @map("inside_temp") @db.Decimal(4, 1)
   outsideTemp            Decimal?  @map("outside_temp") @db.Decimal(4, 1)
@@ -95,7 +92,6 @@ model VehicleState {
   createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
   vehicle                Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-  driver                 Driver?   @relation(fields: [driverId], references: [id])
 
   @@index([vehicleId, timestamp(sort: Desc)], name: "idx_vehicle_states_vehicle_timestamp")
   @@index([timestamp(sort: Desc)], name: "idx_vehicle_states_timestamp")
@@ -146,21 +142,6 @@ model ChargingSession {
   @@index([vehicleId, startedAt(sort: Desc)], name: "idx_charging_sessions_vehicle")
   @@index([startedAt(sort: Desc)], name: "idx_charging_sessions_date")
   @@map("charging_sessions")
-}
-
-// Drivers (multi-driver tracking)
-model Driver {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name           String    @db.VarChar(100)
-  profileId      String?   @map("profile_id") @db.VarChar(50)
-  isPrimary      Boolean   @default(false) @map("is_primary")
-  avatarUrl      String?   @map("avatar_url") @db.VarChar(500)
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  vehicleStates  VehicleState[]
-
-  @@map("drivers")
 }
 
 // Powerwall/Solar Sites

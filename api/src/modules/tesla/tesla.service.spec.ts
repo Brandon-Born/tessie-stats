@@ -178,7 +178,7 @@ describe('TeslaService', () => {
       expect(mockGet).toHaveBeenCalledWith(
         '/api/1/vehicles/12345/vehicle_data',
         expect.objectContaining({
-          params: { endpoints: 'charge_state,drive_state' },
+          params: { endpoints: 'charge_state;drive_state' },
         })
       );
     });

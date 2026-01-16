@@ -118,7 +118,6 @@ describe('VehicleService', () => {
           destinationLongitude: null,
           destinationEta: null,
           destinationDistance: null,
-          driverId: null,
           insideTemp: 20,
           outsideTemp: 10,
           isLocked: true,
@@ -158,7 +157,6 @@ describe('VehicleService', () => {
         destinationLongitude: null,
         destinationEta: null,
         destinationDistance: null,
-        driverId: null,
         insideTemp: 20,
         outsideTemp: 10,
         isLocked: true,
@@ -170,6 +168,94 @@ describe('VehicleService', () => {
 
       expect(result.id).toBe('state-2');
       expect(mockPrismaService.vehicleState.findFirst).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getVehicleData', () => {
+    const normalVehicleData = {
+      id: 123,
+      vehicle_id: 456,
+      vin: 'VIN123',
+      display_name: 'My Tesla',
+      state: 'online',
+      charge_state: { battery_level: 80, battery_range: 250 },
+      drive_state: { latitude: 37.0, longitude: -122.0 },
+      vehicle_state: { odometer: 1000 },
+      climate_state: { inside_temp: 22 },
+    };
+
+    const doubleWrappedData = {
+      response: normalVehicleData,
+    };
+
+    beforeEach(() => {
+      mockPrismaService.vehicleListCache.findUnique.mockResolvedValue(null);
+      mockPrismaService.vehicleListCache.upsert.mockResolvedValue({});
+      mockPrismaService.vehicleDataCache.upsert.mockResolvedValue({});
+      mockTeslaService.getVehicles.mockResolvedValue([
+        { id: 123, vehicle_id: 456, vin: 'VIN123', state: 'online' },
+      ]);
+    });
+
+    it('returns normalized data when API returns properly unwrapped response', async () => {
+      mockPrismaService.vehicleDataCache.findUnique.mockResolvedValue(null);
+      mockAuthService.executeTeslaCall.mockImplementation(
+        (operation: (accessToken: string) => Promise<unknown>) => operation('token-1')
+      );
+      mockTeslaService.getVehicleData.mockResolvedValue(normalVehicleData);
+
+      const result = await service.getVehicleData('123');
+
+      expect(result.id).toBe(123);
+      expect(result.charge_state?.battery_level).toBe(80);
+      expect(result.drive_state?.latitude).toBe(37.0);
+    });
+
+    it('normalizes double-wrapped API responses', async () => {
+      mockPrismaService.vehicleDataCache.findUnique.mockResolvedValue(null);
+      mockAuthService.executeTeslaCall.mockImplementation(
+        (operation: (accessToken: string) => Promise<unknown>) => operation('token-1')
+      );
+      mockTeslaService.getVehicleData.mockResolvedValue(doubleWrappedData);
+
+      const result = await service.getVehicleData('123');
+
+      expect(result.id).toBe(123);
+      expect(result.charge_state?.battery_level).toBe(80);
+      expect(result.drive_state?.latitude).toBe(37.0);
+      // Ensure the response wrapper is not present
+      expect((result as unknown as { response?: unknown }).response).toBeUndefined();
+    });
+
+    it('normalizes double-wrapped cached data', async () => {
+      const futureDate = new Date(Date.now() + 60000);
+      mockPrismaService.vehicleDataCache.findUnique.mockResolvedValue({
+        vehicleId: '123',
+        data: doubleWrappedData,
+        cachedAt: new Date(),
+        expiresAt: futureDate,
+      });
+
+      const result = await service.getVehicleData('123');
+
+      expect(result.id).toBe(123);
+      expect(result.charge_state?.battery_level).toBe(80);
+      expect((result as unknown as { response?: unknown }).response).toBeUndefined();
+    });
+
+    it('returns properly structured cached data without double unwrapping', async () => {
+      const futureDate = new Date(Date.now() + 60000);
+      mockPrismaService.vehicleDataCache.findUnique.mockResolvedValue({
+        vehicleId: '123',
+        data: normalVehicleData,
+        cachedAt: new Date(),
+        expiresAt: futureDate,
+      });
+
+      const result = await service.getVehicleData('123');
+
+      expect(result.id).toBe(123);
+      expect(result.charge_state?.battery_level).toBe(80);
     });
   });
 });

@@ -19,6 +19,8 @@ export function SettingsPage(): React.JSX.Element {
     hasToken: boolean;
     message?: string;
   } | null>(null);
+  const [scopeStatus, setScopeStatus] = React.useState<{ scopes: string[] | null } | null>(null);
+  const [scopeError, setScopeError] = React.useState<string | null>(null);
   const [message, setMessage] = React.useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Check auth status on mount and handle OAuth callback result
@@ -83,6 +85,17 @@ export function SettingsPage(): React.JSX.Element {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCheckScopes = async (): Promise<void> => {
+    setScopeError(null);
+    try {
+      const result = await authService.getScopes();
+      setScopeStatus(result);
+    } catch (error) {
+      setScopeError(error instanceof Error ? error.message : 'Failed to fetch scopes');
+      setScopeStatus(null);
     }
   };
 
@@ -159,15 +172,36 @@ export function SettingsPage(): React.JSX.Element {
                     {isLoading ? 'Connecting...' : 'Connect Tesla Account'}
                   </Button>
                 ) : (
-                  <Button
-                    variant="outline"
-                    onClick={() => void handleDisconnect()}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Disconnecting...' : 'Disconnect'}
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => void handleDisconnect()}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? 'Disconnecting...' : 'Disconnect'}
+                    </Button>
+                    <Button variant="outline" onClick={() => void handleCheckScopes()}>
+                      Check scopes
+                    </Button>
+                  </>
                 )}
               </div>
+
+              {scopeStatus && (
+                <div className="rounded-lg border border-border/40 bg-surface-2/40 px-4 py-3 text-xs text-muted">
+                  <div className="font-medium text-text">Granted scopes</div>
+                  <div className="mt-2">
+                    {scopeStatus.scopes?.length
+                      ? scopeStatus.scopes.join(', ')
+                      : 'No scopes found in token.'}
+                  </div>
+                </div>
+              )}
+              {scopeError && (
+                <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs text-red-400">
+                  {scopeError}
+                </div>
+              )}
 
               <div className="rounded-lg border border-border/40 bg-surface-2/40 p-4 text-xs text-muted">
                 <div className="font-medium text-text mb-2">How it works:</div>

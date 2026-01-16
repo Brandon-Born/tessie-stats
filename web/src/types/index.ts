@@ -7,4 +7,3 @@
 export * from './vehicle.types';
 export * from './energy.types';
 export * from './charging.types';
-export * from './drivers.types';

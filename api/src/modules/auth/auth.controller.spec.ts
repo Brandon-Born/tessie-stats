@@ -18,6 +18,7 @@ describe('AuthController', () => {
     handleCallback: jest.fn(),
     getAuthStatus: jest.fn(),
     deleteToken: jest.fn(),
+    getTeslaScopes: jest.fn(),
   };
 
   const mockConfigService = {
@@ -117,6 +118,18 @@ describe('AuthController', () => {
 
       expect(result).toEqual(expectedResponse);
       expect(mockAuthService.deleteToken).toHaveBeenCalled();
+    });
+  });
+
+  describe('getScopes', () => {
+    it('returns Tesla OAuth scopes', async () => {
+      const expectedScopes = { scopes: ['vehicle_device_data'] };
+      mockAuthService.getTeslaScopes.mockResolvedValue(expectedScopes);
+
+      const result = await controller.getScopes();
+
+      expect(result).toEqual(expectedScopes);
+      expect(mockAuthService.getTeslaScopes).toHaveBeenCalled();
     });
   });
 });

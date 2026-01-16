@@ -175,7 +175,7 @@ export class TeslaService {
     endpoints?: string[]
   ): Promise<VehicleData> {
     try {
-      const params = endpoints ? { endpoints: endpoints.join(',') } : {};
+      const params = endpoints ? { endpoints: endpoints.join(';') } : {};
 
       const response = await this.apiClient.get<TeslaResponse<VehicleData>>(
         TESLA_API_ENDPOINTS.VEHICLE_DATA(vehicleId),

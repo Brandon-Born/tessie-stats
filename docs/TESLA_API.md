@@ -232,7 +232,6 @@ Authorization: Bearer {access_token}
 - `gui_settings`
 - `vehicle_config`
 - `vehicle_state`
-- `location_data`
 
 **Example Response (abbreviated):**
 ```json

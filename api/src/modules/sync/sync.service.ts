@@ -112,28 +112,19 @@ export class SyncService {
     return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
   }
 
-  private async resolveDefaultDriverId(): Promise<string | null> {
-    const primaryDriver = await this.prisma.driver.findFirst({
-      where: { isPrimary: true },
-      select: { id: true },
-    });
+  private normalizeVehicleData(vehicleData: VehicleData): VehicleData {
+    const wrapper = vehicleData as unknown as { response?: VehicleData };
+    return wrapper.response ?? vehicleData;
+  }
 
-    if (primaryDriver) {
-      return primaryDriver.id;
-    }
-
-    const drivers = await this.prisma.driver.findMany({
-      select: { id: true },
-      orderBy: { createdAt: 'asc' },
-      take: 2,
-    });
-
-    if (drivers.length === 1) {
-      const [driver] = drivers;
-      return driver?.id ?? null;
-    }
-
-    return null;
+  private hasVehicleTelemetry(vehicleData: VehicleData): boolean {
+    return Boolean(
+      vehicleData.charge_state ??
+      vehicleData.drive_state ??
+      vehicleData.vehicle_state ??
+      vehicleData.climate_state ??
+      null
+    );
   }
 
   private async upsertVehicle(teslaVehicle: TeslaVehicle): Promise<SyncVehicleRecord> {
@@ -217,8 +208,7 @@ export class SyncService {
 
   private async syncVehicleStates(
     vehicles: TeslaVehicle[],
-    records: Map<string, SyncVehicleRecord>,
-    defaultDriverId: string | null
+    records: Map<string, SyncVehicleRecord>
   ): Promise<{
     vehicleStatesCreated: number;
     vehiclesSkipped: number;
@@ -237,7 +227,13 @@ export class SyncService {
         await this.rateLimitTeslaCalls();
         const vehicleData = await this.vehicleService.getVehicleData(vehicle.id.toString(), false);
 
-        const snapshotTimestamp = this.resolveVehicleSnapshotTimestamp(vehicleData);
+        const normalizedVehicleData = this.normalizeVehicleData(vehicleData);
+        if (!this.hasVehicleTelemetry(normalizedVehicleData)) {
+          this.logger.warn(`Vehicle data missing telemetry for ${vehicle.id}; skipping snapshot`);
+          vehiclesSkipped += 1;
+          continue;
+        }
+        const snapshotTimestamp = this.resolveVehicleSnapshotTimestamp(normalizedVehicleData);
         const latestState = await this.prisma.vehicleState.findFirst({
           where: { vehicleId: vehicleRecord.id },
           orderBy: { timestamp: 'desc' },
@@ -255,34 +251,33 @@ export class SyncService {
           data: {
             vehicleId: vehicleRecord.id,
             timestamp: snapshotTimestamp,
-            latitude: this.toDecimal(vehicleData.drive_state?.latitude ?? null),
-            longitude: this.toDecimal(vehicleData.drive_state?.longitude ?? null),
-            heading: vehicleData.drive_state?.heading ?? null,
-            speed: vehicleData.drive_state?.speed ?? null,
-            batteryLevel: vehicleData.charge_state?.battery_level ?? null,
-            batteryRange: this.toDecimal(vehicleData.charge_state?.battery_range ?? null),
-            usableBatteryLevel: vehicleData.charge_state?.usable_battery_level ?? null,
-            chargingState: vehicleData.charge_state?.charging_state ?? null,
-            chargeRate: this.toDecimal(vehicleData.charge_state?.charge_rate ?? null),
-            chargerPower: vehicleData.charge_state?.charger_power ?? null,
-            odometer: this.toDecimal(vehicleData.vehicle_state?.odometer ?? null),
-            destinationName: vehicleData.drive_state?.active_route_destination ?? null,
+            latitude: this.toDecimal(normalizedVehicleData.drive_state?.latitude ?? null),
+            longitude: this.toDecimal(normalizedVehicleData.drive_state?.longitude ?? null),
+            heading: normalizedVehicleData.drive_state?.heading ?? null,
+            speed: normalizedVehicleData.drive_state?.speed ?? null,
+            batteryLevel: normalizedVehicleData.charge_state?.battery_level ?? null,
+            batteryRange: this.toDecimal(normalizedVehicleData.charge_state?.battery_range ?? null),
+            usableBatteryLevel: normalizedVehicleData.charge_state?.usable_battery_level ?? null,
+            chargingState: normalizedVehicleData.charge_state?.charging_state ?? null,
+            chargeRate: this.toDecimal(normalizedVehicleData.charge_state?.charge_rate ?? null),
+            chargerPower: normalizedVehicleData.charge_state?.charger_power ?? null,
+            odometer: this.toDecimal(normalizedVehicleData.vehicle_state?.odometer ?? null),
+            destinationName: normalizedVehicleData.drive_state?.active_route_destination ?? null,
             destinationLatitude: this.toDecimal(
-              vehicleData.drive_state?.active_route_latitude ?? null
+              normalizedVehicleData.drive_state?.active_route_latitude ?? null
             ),
             destinationLongitude: this.toDecimal(
-              vehicleData.drive_state?.active_route_longitude ?? null
+              normalizedVehicleData.drive_state?.active_route_longitude ?? null
             ),
-            insideTemp: this.toDecimal(vehicleData.climate_state?.inside_temp ?? null),
-            outsideTemp: this.toDecimal(vehicleData.climate_state?.outside_temp ?? null),
-            isLocked: vehicleData.vehicle_state?.locked ?? null,
-            sentryMode: vehicleData.vehicle_state?.sentry_mode ?? null,
-            driverId: defaultDriverId,
-            rawData: vehicleData as unknown as Prisma.InputJsonValue,
+            insideTemp: this.toDecimal(normalizedVehicleData.climate_state?.inside_temp ?? null),
+            outsideTemp: this.toDecimal(normalizedVehicleData.climate_state?.outside_temp ?? null),
+            isLocked: normalizedVehicleData.vehicle_state?.locked ?? null,
+            sentryMode: normalizedVehicleData.vehicle_state?.sentry_mode ?? null,
+            rawData: normalizedVehicleData as unknown as Prisma.InputJsonValue,
           },
         });
 
-        await this.syncChargingSession(vehicleRecord.id, snapshotTimestamp, vehicleData);
+        await this.syncChargingSession(vehicleRecord.id, snapshotTimestamp, normalizedVehicleData);
 
         vehicleStatesCreated += 1;
       } catch (error) {
@@ -432,11 +427,9 @@ export class SyncService {
     await this.rateLimitTeslaCalls();
     const vehicles = await this.vehicleService.getVehicles(false);
     const records = await this.syncVehicleRecords(vehicles);
-    const defaultDriverId = await this.resolveDefaultDriverId();
     const { vehicleStatesCreated, vehiclesSkipped } = await this.syncVehicleStates(
       vehicles,
-      records,
-      defaultDriverId
+      records
     );
     const sites = await this.getEnergySitesForSync();
     const { energyStatesCreated, energySitesSkipped } = await this.syncEnergyStates(sites);

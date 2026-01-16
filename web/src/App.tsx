@@ -12,7 +12,6 @@ import { ProtectedRoute } from '@/components/auth/protected-route';
 import {
   ChargingPage,
   DashboardPage,
-  DriversPage,
   EnergyPage,
   LoginPage,
   NotFoundPage,
@@ -34,7 +33,6 @@ function App() {
             <Route path="/vehicles" element={<VehiclesPage />} />
             <Route path="/energy" element={<EnergyPage />} />
             <Route path="/charging" element={<ChargingPage />} />
-            <Route path="/drivers" element={<DriversPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>

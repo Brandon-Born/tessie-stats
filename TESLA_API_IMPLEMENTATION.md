@@ -92,7 +92,7 @@ model VehicleListCache {
    const data = await this.teslaService.getVehicleData(
      accessToken,
      vehicleId,
-     ['charge_state', 'drive_state', 'vehicle_state', 'climate_state', 'location_data']
+     ['charge_state', 'drive_state', 'vehicle_state', 'climate_state']
    );
    ```
 

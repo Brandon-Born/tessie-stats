@@ -287,6 +287,41 @@ describe('AuthService', () => {
     });
   });
 
+  describe('getTeslaScopes', () => {
+    const buildToken = (payload: Record<string, unknown>): string => {
+      const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url');
+      const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+      return `${header}.${body}.`;
+    };
+
+    it('returns scopes from scp array', async () => {
+      const token = buildToken({ scp: ['vehicle_device_data', 'energy_device_data'] });
+      jest.spyOn(service, 'getAccessToken').mockResolvedValue(token);
+
+      const result = await service.getTeslaScopes();
+
+      expect(result.scopes).toEqual(['vehicle_device_data', 'energy_device_data']);
+    });
+
+    it('returns scopes from scope string', async () => {
+      const token = buildToken({ scope: 'openid offline_access vehicle_device_data' });
+      jest.spyOn(service, 'getAccessToken').mockResolvedValue(token);
+
+      const result = await service.getTeslaScopes();
+
+      expect(result.scopes).toEqual(['openid', 'offline_access', 'vehicle_device_data']);
+    });
+
+    it('returns null when no scopes are present', async () => {
+      const token = buildToken({ sub: 'user' });
+      jest.spyOn(service, 'getAccessToken').mockResolvedValue(token);
+
+      const result = await service.getTeslaScopes();
+
+      expect(result.scopes).toBeNull();
+    });
+  });
+
   describe('login', () => {
     beforeEach(() => {
       // Ensure APP_PASSWORD is set for login tests

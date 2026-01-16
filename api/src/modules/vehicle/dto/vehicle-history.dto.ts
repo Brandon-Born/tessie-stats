@@ -48,7 +48,6 @@ export interface VehicleHistoryItem {
   destinationLongitude: number | null;
   destinationEta: string | null;
   destinationDistance: number | null;
-  driverId: string | null;
   insideTemp: number | null;
   outsideTemp: number | null;
   isLocked: boolean | null;

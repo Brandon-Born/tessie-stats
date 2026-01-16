@@ -22,6 +22,7 @@ import { AuthService } from './auth.service';
 import { AuthStatusDto, StoreTokenResponseDto } from './dto/store-token.dto';
 import { AuthUrlResponse, CallbackQueryDto } from './dto/callback.dto';
 import { LoginDto, LoginResponse } from './dto/login.dto';
+import { AuthScopesResponse } from './dto/scopes.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
@@ -79,6 +80,16 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async getStatus(): Promise<AuthStatusDto> {
     return this.authService.getAuthStatus();
+  }
+
+  /**
+   * GET /api/auth/scopes
+   * Get Tesla OAuth scopes from access token
+   */
+  @Get('scopes')
+  @UseGuards(JwtAuthGuard)
+  async getScopes(): Promise<AuthScopesResponse> {
+    return this.authService.getTeslaScopes();
   }
 
   /**

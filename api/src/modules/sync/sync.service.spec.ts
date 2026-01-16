@@ -44,10 +44,6 @@ describe('SyncService', () => {
       create: jest.fn(),
       update: jest.fn(),
     },
-    driver: {
-      findFirst: jest.fn(),
-      findMany: jest.fn(),
-    },
   };
 
   const mockVehicleService = {
@@ -118,8 +114,6 @@ describe('SyncService', () => {
       mockPrismaService.vehicleDataCache.deleteMany.mockResolvedValue({ count: 1 });
       mockPrismaService.energyDataCache.deleteMany.mockResolvedValue({ count: 1 });
       mockPrismaService.vehicleListCache.deleteMany.mockResolvedValue({ count: 1 });
-      mockPrismaService.driver.findFirst.mockResolvedValue(null);
-      mockPrismaService.driver.findMany.mockResolvedValue([]);
       mockVehicleService.getVehicles.mockResolvedValue([]);
       mockPrismaService.energySite.findMany.mockResolvedValue([]);
       mockEnergyService.getEnergySites.mockResolvedValue([]);
@@ -136,8 +130,6 @@ describe('SyncService', () => {
       mockPrismaService.vehicleDataCache.deleteMany.mockResolvedValue({ count: 1 });
       mockPrismaService.energyDataCache.deleteMany.mockResolvedValue({ count: 1 });
       mockPrismaService.vehicleListCache.deleteMany.mockResolvedValue({ count: 1 });
-      mockPrismaService.driver.findFirst.mockResolvedValue({ id: 'driver-1' });
-      mockPrismaService.driver.findMany.mockResolvedValue([]);
 
       mockVehicleService.getVehicles.mockResolvedValue([
         {
@@ -232,13 +224,7 @@ describe('SyncService', () => {
         energySitesSkipped: 0,
       });
       expect(mockEnergyService.getEnergySites).not.toHaveBeenCalled();
-      expect(mockPrismaService.vehicleState.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            driverId: 'driver-1',
-          }) as unknown as { driverId: string },
-        }) as unknown as { data: { driverId: string } }
-      );
+      expect(mockPrismaService.vehicleState.create).toHaveBeenCalled();
       expect(mockPrismaService.chargingSession.create).toHaveBeenCalled();
     });
   });

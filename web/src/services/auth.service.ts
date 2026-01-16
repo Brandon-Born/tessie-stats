@@ -20,6 +20,10 @@ export interface LoginResponse {
   message: string;
 }
 
+export interface AuthScopesResponse {
+  scopes: string[] | null;
+}
+
 const TOKEN_KEY = 'tessie_auth_token';
 
 export const authService = {
@@ -73,6 +77,14 @@ export const authService = {
    */
   async deleteToken(): Promise<DeleteTokenResponse> {
     const response = await apiClient.delete<DeleteTokenResponse>('/auth/token');
+    return response.data;
+  },
+
+  /**
+   * Get Tesla OAuth scopes from access token
+   */
+  async getScopes(): Promise<AuthScopesResponse> {
+    const response = await apiClient.get<AuthScopesResponse>('/auth/scopes');
     return response.data;
   },
 };

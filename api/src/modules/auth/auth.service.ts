@@ -11,6 +11,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { TeslaService } from '../tesla/tesla.service';
 import { encrypt, decrypt } from '../../common/utils/encryption.util';
 import { AuthStatusDto, StoreTokenResponseDto } from './dto/store-token.dto';
+import { AuthScopesResponse } from './dto/scopes.dto';
 import { AuthUrlResponse } from './dto/callback.dto';
 import { TESLA_AUTH_URLS, TESLA_SCOPES } from '../tesla/tesla.constants';
 
@@ -135,6 +136,28 @@ export class AuthService {
     return Math.random().toString(36).substring(2, 15);
   }
 
+  private decodeJwtPayload(token: string): Record<string, unknown> | null {
+    const parts = token.split('.');
+    if (parts.length < 2) {
+      return null;
+    }
+
+    const payloadPart = parts[1];
+    if (!payloadPart) {
+      return null;
+    }
+
+    try {
+      const payload = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = payload.padEnd(payload.length + ((4 - (payload.length % 4)) % 4), '=');
+      const decoded = Buffer.from(padded, 'base64').toString('utf-8');
+      return JSON.parse(decoded) as Record<string, unknown>;
+    } catch (error) {
+      this.logger.warn('Failed to decode Tesla access token payload', error);
+      return null;
+    }
+  }
+
   /**
    * Get decrypted refresh token
    */
@@ -209,6 +232,30 @@ export class AuthService {
     });
 
     return tokenPair.accessToken;
+  }
+
+  /**
+   * Get Tesla OAuth scopes from the current access token.
+   */
+  async getTeslaScopes(): Promise<AuthScopesResponse> {
+    const accessToken = await this.getAccessToken();
+    const payload = this.decodeJwtPayload(accessToken);
+    const scp = payload?.scp;
+    const scope = payload?.scope;
+
+    let scopes: string[] | null = null;
+
+    if (Array.isArray(scp)) {
+      scopes = scp.filter((value): value is string => typeof value === 'string');
+    } else if (typeof scp === 'string') {
+      scopes = scp.split(' ').filter(Boolean);
+    } else if (typeof scope === 'string') {
+      scopes = scope.split(' ').filter(Boolean);
+    }
+
+    return {
+      scopes,
+    };
   }
 
   /**

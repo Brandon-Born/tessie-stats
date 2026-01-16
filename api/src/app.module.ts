@@ -24,7 +24,6 @@ import { EnergyModule } from './modules/energy/energy.module';
 // Sync module (for Vercel Cron)
 import { SyncModule } from './modules/sync/sync.module';
 import { ChargingModule } from './modules/charging/charging.module';
-import { DriversModule } from './modules/drivers/drivers.module';
 
 // Additional feature modules will be imported here as they are created:
 // import { ChargingModule } from './modules/charging/charging.module';
@@ -53,7 +52,6 @@ import { DriversModule } from './modules/drivers/drivers.module';
     EnergyModule,
     SyncModule,
     ChargingModule,
-    DriversModule,
 
     // Additional feature modules - add as implemented:
   ],

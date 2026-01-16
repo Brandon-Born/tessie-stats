@@ -31,6 +31,19 @@ export class VehicleService {
     private readonly prisma: PrismaService
   ) {}
 
+  /**
+   * Normalize vehicle data to handle cases where the Tesla API
+   * returns double-wrapped responses (data inside a "response" property)
+   */
+  private normalizeVehicleData(vehicleData: VehicleData): VehicleData {
+    const wrapper = vehicleData as unknown as { response?: VehicleData };
+    if (wrapper.response && typeof wrapper.response === 'object' && 'id' in wrapper.response) {
+      this.logger.debug('Normalizing double-wrapped vehicle data response');
+      return wrapper.response;
+    }
+    return vehicleData;
+  }
+
   private isUuid(value: string): boolean {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return uuidRegex.test(value);
@@ -85,7 +98,6 @@ export class VehicleService {
       destinationLongitude: this.toNumber(state.destinationLongitude),
       destinationEta: state.destinationEta ? state.destinationEta.toISOString() : null,
       destinationDistance: this.toNumber(state.destinationDistance),
-      driverId: state.driverId,
       insideTemp: this.toNumber(state.insideTemp),
       outsideTemp: this.toNumber(state.outsideTemp),
       isLocked: state.isLocked,
@@ -163,7 +175,7 @@ export class VehicleService {
 
         if (cached && cached.expiresAt > new Date()) {
           this.logger.debug(`Cache hit for vehicle ${vehicleId}`);
-          return cached.data as unknown as VehicleData;
+          return this.normalizeVehicleData(cached.data as unknown as VehicleData);
         }
       }
 
@@ -191,7 +203,7 @@ export class VehicleService {
 
         if (staleCache) {
           this.logger.debug(`Returning stale cache for sleeping vehicle ${vehicleId}`);
-          return staleCache.data as unknown as VehicleData;
+          return this.normalizeVehicleData(staleCache.data as unknown as VehicleData);
         }
 
         // Only wake if explicitly requested via forceFresh
@@ -210,17 +222,19 @@ export class VehicleService {
 
       // STEP 4: Fetch from API with batched endpoints
       this.logger.debug(`Fetching fresh data for vehicle ${vehicleId} - API COST INCURRED`);
-      const data = await this.authService.executeTeslaCall((accessToken) =>
+      const rawData = await this.authService.executeTeslaCall((accessToken) =>
         this.teslaService.getVehicleData(accessToken, vehicleId, [
           'charge_state',
           'drive_state',
           'vehicle_state',
           'climate_state',
-          'location_data',
         ])
       );
 
-      // STEP 5: Cache the result
+      // Normalize the response (handles double-wrapped API responses)
+      const data = this.normalizeVehicleData(rawData);
+
+      // STEP 5: Cache the normalized result
       const expiresAt = new Date(Date.now() + this.CACHE_TTL_SECONDS * 1000);
       await this.prisma.vehicleDataCache.upsert({
         where: { vehicleId },

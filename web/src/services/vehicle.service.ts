@@ -19,8 +19,21 @@ export const vehicleService = {
   /**
    * Get detailed vehicle data
    */
-  async getVehicleData(vehicleId: string): Promise<VehicleData> {
-    const response = await apiClient.get<VehicleData>(`/vehicles/${vehicleId}`);
+  async getVehicleData(
+    vehicleId: string,
+    options: { forceFresh?: boolean } = {}
+  ): Promise<VehicleData> {
+    const response = await apiClient.get<VehicleData>(`/vehicles/${vehicleId}`, {
+      params: options.forceFresh ? { forceFresh: true } : undefined,
+    });
+    return response.data;
+  },
+
+  /**
+   * Clear cache for a specific vehicle
+   */
+  async clearVehicleCache(vehicleId: string): Promise<{ message: string }> {
+    const response = await apiClient.delete<{ message: string }>(`/vehicles/${vehicleId}/cache`);
     return response.data;
   },
 

@@ -1,6 +1,5 @@
 export * from './charging.page';
 export * from './dashboard.page';
-export * from './drivers.page';
 export * from './energy.page';
 export * from './login.page';
 export * from './not-found.page';

@@ -93,14 +93,6 @@ export interface ChargingSession {
 
 export type ChargerType = 'home' | 'supercharger' | 'destination' | 'third_party' | 'other';
 
-export interface Driver {
-  id: string;
-  name: string;
-  profileId: string | null;
-  isPrimary: boolean;
-  avatarUrl: string | null;
-}
-
 /**
  * Tesla API Response Types
  */
@@ -164,7 +156,6 @@ export interface VehicleStateResponse {
   destinationLongitude: number | null;
   destinationEta: string | null;
   destinationDistance: number | null;
-  driverId: string | null;
   insideTemp: number | null;
   outsideTemp: number | null;
   isLocked: boolean | null;
