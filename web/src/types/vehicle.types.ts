@@ -144,3 +144,29 @@ export interface VehicleData {
     sentry_mode: boolean;
   };
 }
+
+export interface VehicleStateResponse {
+  id: string;
+  timestamp: string;
+  latitude: number | null;
+  longitude: number | null;
+  heading: number | null;
+  speed: number | null;
+  batteryLevel: number | null;
+  batteryRange: number | null;
+  usableBatteryLevel: number | null;
+  chargingState: string | null;
+  chargeRate: number | null;
+  chargerPower: number | null;
+  odometer: number | null;
+  destinationName: string | null;
+  destinationLatitude: number | null;
+  destinationLongitude: number | null;
+  destinationEta: string | null;
+  destinationDistance: number | null;
+  driverId: string | null;
+  insideTemp: number | null;
+  outsideTemp: number | null;
+  isLocked: boolean | null;
+  sentryMode: boolean | null;
+}

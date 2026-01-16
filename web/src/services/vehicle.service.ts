@@ -5,7 +5,7 @@
  */
 
 import { apiClient } from '@/services/api';
-import { TeslaVehicle, VehicleData } from '@/types';
+import { TeslaVehicle, VehicleData, VehicleStateResponse } from '@/types';
 
 export const vehicleService = {
   /**
@@ -21,6 +21,14 @@ export const vehicleService = {
    */
   async getVehicleData(vehicleId: string): Promise<VehicleData> {
     const response = await apiClient.get<VehicleData>(`/vehicles/${vehicleId}`);
+    return response.data;
+  },
+
+  /**
+   * Get latest stored vehicle state snapshot
+   */
+  async getVehicleState(vehicleId: string): Promise<VehicleStateResponse> {
+    const response = await apiClient.get<VehicleStateResponse>(`/vehicles/${vehicleId}/state`);
     return response.data;
   },
 

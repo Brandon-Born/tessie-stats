@@ -134,3 +134,40 @@ export interface EnergySiteData {
   grid_status: string;
   timestamp: string;
 }
+
+export interface EnergyHistoryPoint {
+  date: string;
+  solarProducedKwh: number;
+  solarToHomeKwh: number;
+  solarToBatteryKwh: number;
+  solarToGridKwh: number;
+  batteryChargedKwh: number;
+  batteryDischargedKwh: number;
+  gridImportedKwh: number;
+  gridExportedKwh: number;
+  homeConsumedKwh: number;
+  selfConsumptionPct: number | null;
+  solarOffsetPct: number | null;
+}
+
+export interface EnergyHistoryResponse {
+  siteId: string;
+  period: 'day' | 'week' | 'month' | 'year' | 'lifetime';
+  startDate: string | null;
+  endDate: string | null;
+  points: EnergyHistoryPoint[];
+}
+
+export interface SolarStatsResponse {
+  siteId: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  days: number;
+  totalSolarProducedKwh: number;
+  totalSolarToHomeKwh: number;
+  totalSolarToBatteryKwh: number;
+  totalSolarToGridKwh: number;
+  totalHomeConsumedKwh: number;
+  averageSelfConsumptionPct: number | null;
+  averageSolarOffsetPct: number | null;
+}
