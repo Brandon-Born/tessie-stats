@@ -4,7 +4,7 @@
  * @description Data transfer objects for sync endpoints
  */
 
-import { CacheCleanupResult } from '../sync.service';
+import { CacheCleanupResult, SyncIngestionResult } from '../sync.service';
 
 export interface SyncStatusResponse {
   lastRunAt: string | null;
@@ -16,4 +16,5 @@ export interface SyncTriggerResponse {
   success: boolean;
   message: string;
   cleanup?: CacheCleanupResult;
+  ingestion?: SyncIngestionResult;
 }
