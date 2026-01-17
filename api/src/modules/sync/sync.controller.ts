@@ -6,8 +6,8 @@
 
 import { Controller, Get, Logger, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { SyncService } from '@/modules/sync/sync.service';
-import { SyncStatusResponse, SyncTriggerResponse } from '@/modules/sync/dto/sync.dto';
+import { SyncService } from './sync.service';
+import { SyncStatusResponse, SyncTriggerResponse } from './dto/sync.dto';
 
 @Controller('sync')
 export class SyncController {
