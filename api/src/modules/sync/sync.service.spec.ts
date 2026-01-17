@@ -44,6 +44,13 @@ describe('SyncService', () => {
       create: jest.fn(),
       update: jest.fn(),
     },
+    drivingSession: {
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+    },
   };
 
   const mockVehicleService = {

@@ -113,14 +113,11 @@ tessie-stats/
 
 ### Historical Views
 - **Charging Sessions:** Complete history with cost, energy, duration, charge source (home/supercharger/destination)
-- **Driving History:** Trips, efficiency, driver identification
+- **Driving History:** Trips, efficiency
 - **Energy Analytics:** Daily/weekly/monthly solar production and consumption
 - **Battery Degradation:** State of health over time
 
-### Multi-Driver Support
-- Driver identification via profile settings
-- Per-driver statistics and trip attribution
-- Driving style analytics
+
 
 ### Solar Analytics
 - % of charging from solar over time periods (day/week/month/year)

@@ -11,6 +11,8 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
+export const api = apiClient;
+
 // Add JWT token to all requests
 apiClient.interceptors.request.use(
   (config) => {

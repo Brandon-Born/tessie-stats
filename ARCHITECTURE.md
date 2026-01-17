@@ -102,18 +102,10 @@ api/src/
 │   │   ├── solar.service.ts
 │   │   └── solar.service.spec.ts
 │   │
-│   ├── drivers/
-│   │   ├── drivers.module.ts
-│   │   ├── drivers.controller.ts
-│   │   ├── drivers.service.ts
-│   │   ├── entities/
-│   │   │   └── driver.entity.ts
-│   │   └── drivers.service.spec.ts
-│   │
+
 │   └── sync/
 │       ├── sync.module.ts
 │       ├── sync.service.ts         # Orchestrates data sync
-│       ├── sync.scheduler.ts       # Cron job definitions
 │       └── sync.service.spec.ts
 │
 ├── common/
@@ -226,7 +218,7 @@ web/src/
 │   ├── VehicleDetail/
 │   ├── ChargingHistory/
 │   ├── EnergyAnalytics/
-│   ├── Drivers/
+
 │   ├── Settings/
 │   └── Login/
 │

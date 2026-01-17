@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAuthStatus } from '@/hooks/use-auth-status';
 import { useAuthStore } from '@/stores/auth.store';
 import { useThemeStore } from '@/stores/theme.store';
+import { VehicleSelector } from '@/components/vehicle-selector';
 
 interface NavItem {
   to: string;
@@ -15,6 +16,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Dashboard' },
   { to: '/vehicles', label: 'Vehicles' },
+  { to: '/driving', label: 'Driving' },
   { to: '/energy', label: 'Energy' },
   { to: '/charging', label: 'Charging' },
   { to: '/settings', label: 'Settings' },
@@ -53,6 +55,7 @@ function Header(): React.JSX.Element {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <VehicleSelector />
           <StatusPill isAuthenticated={isAuthenticated} />
           <Button variant="outline" size="sm" onClick={toggle}>
             Theme: {mode}

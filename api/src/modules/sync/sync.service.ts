@@ -60,7 +60,7 @@ export class SyncService {
     private readonly prisma: PrismaService,
     private readonly vehicleService: VehicleService,
     private readonly energyService: EnergyService
-  ) {}
+  ) { }
 
   private async rateLimitTeslaCalls(): Promise<void> {
     if (process.env.NODE_ENV === 'test') {
@@ -242,7 +242,7 @@ export class SyncService {
         if (
           latestState &&
           latestState.timestamp.getTime() + this.VEHICLE_STATE_DEDUPE_SECONDS * 1000 >=
-            snapshotTimestamp.getTime()
+          snapshotTimestamp.getTime()
         ) {
           continue;
         }
@@ -278,6 +278,7 @@ export class SyncService {
         });
 
         await this.syncChargingSession(vehicleRecord.id, snapshotTimestamp, normalizedVehicleData);
+        await this.syncDrivingSession(vehicleRecord.id, snapshotTimestamp, normalizedVehicleData);
 
         vehicleStatesCreated += 1;
       } catch (error) {
@@ -308,7 +309,7 @@ export class SyncService {
         if (
           latestState &&
           latestState.timestamp.getTime() + this.ENERGY_STATE_DEDUPE_SECONDS * 1000 >=
-            snapshotTimestamp.getTime()
+          snapshotTimestamp.getTime()
         ) {
           continue;
         }
@@ -421,6 +422,87 @@ export class SyncService {
         status: finalStatus,
       },
     });
+  }
+
+  private async syncDrivingSession(
+    vehicleId: string,
+    snapshotTimestamp: Date,
+    vehicleData: VehicleData
+  ): Promise<void> {
+    const driveState = vehicleData.drive_state;
+    const chargeState = vehicleData.charge_state;
+    if (!driveState || !chargeState) {
+      return;
+    }
+
+    // Determine if driving (D, R, N are driving states; P or null are ended)
+    const shiftState = driveState.shift_state;
+    const isDriving = shiftState === 'D' || shiftState === 'R' || shiftState === 'N';
+
+    const currentOdometer = this.toDecimal(vehicleData.vehicle_state?.odometer ?? null);
+    const currentBatteryLevel = chargeState.battery_level ?? null;
+    const currentRange = this.toDecimal(chargeState.battery_range ?? null);
+
+    const activeSession = await this.prisma.drivingSession.findFirst({
+      where: { vehicleId, isActive: true },
+      orderBy: { startedAt: 'desc' },
+    });
+
+    if (isDriving) {
+      if (!activeSession) {
+        // Start new session
+        await this.prisma.drivingSession.create({
+          data: {
+            vehicleId,
+            startedAt: snapshotTimestamp,
+            startOdometer: currentOdometer,
+            endOdometer: currentOdometer,
+            startBatteryLevel: currentBatteryLevel,
+            endBatteryLevel: currentBatteryLevel,
+            startBatteryRange: currentRange,
+            endBatteryRange: currentRange,
+            distanceMiles: 0,
+            isActive: true,
+          },
+        });
+      } else {
+        // Update existing session
+        const startOdom = this.toNumber(activeSession.startOdometer);
+        const currOdom = this.toNumber(currentOdometer);
+        const distance =
+          startOdom !== null && currOdom !== null ? Math.max(0, currOdom - startOdom) : 0;
+
+        await this.prisma.drivingSession.update({
+          where: { id: activeSession.id },
+          data: {
+            endOdometer: currentOdometer,
+            endBatteryLevel: currentBatteryLevel,
+            endBatteryRange: currentRange,
+            distanceMiles: this.toDecimal(distance),
+            updatedAt: new Date(),
+          },
+        });
+      }
+    } else {
+      // Not driving (Parked)
+      if (activeSession) {
+        const durationMinutes = Math.round(
+          (snapshotTimestamp.getTime() - activeSession.startedAt.getTime()) / 60000
+        );
+
+        await this.prisma.drivingSession.update({
+          where: { id: activeSession.id },
+          data: {
+            isActive: false,
+            endedAt: snapshotTimestamp,
+            durationMinutes,
+            endOdometer: currentOdometer,
+            endBatteryLevel: currentBatteryLevel,
+            endBatteryRange: currentRange,
+          },
+        });
+      }
+    }
   }
 
   private async runIngestion(): Promise<SyncIngestionResult> {

@@ -5,3 +5,5 @@ export * from './login.page';
 export * from './not-found.page';
 export * from './settings.page';
 export * from './vehicles.page';
+export * from './driving.page';
+
